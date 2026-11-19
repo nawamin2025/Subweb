@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscription Tracker | ระบบจัดการค่าบริการ & แจ้งเตือน Telegram</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Prompt', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+    .glass {
+      background: rgba(30, 41, 59, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navbar -->
+  <header class="sticky top-0 z-30 glass border-b border-slate-800/80">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-xl">
+          💳
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Subscription Tracker
+            <span id="modeBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal">
+              โหมดทดลอง (Local)
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400">Cloudflare D1 + GitHub Pages + Telegram Alert</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="openSettingsModal()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium border border-slate-700 transition flex items-center gap-1.5">
+          <span>⚙️</span> ตั้งค่า Cloudflare API
+        </button>
+        <button onclick="triggerDueCheck()" class="px-3 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs sm:text-sm font-medium border border-sky-500/30 transition flex items-center gap-1.5" title="เช็ครายการใกล้ครบกำหนดและส่งเข้า Telegram ทันที">
+          <span>📨</span> ส่งแจ้งเตือนเข้า Telegram
+        </button>
+        <button onclick="openSubModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/25 transition flex items-center gap-1.5">
+          <span>＋</span> เพิ่มรายการใหม่
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+
+    <!-- Banner แนะนำการเชื่อมต่อ Cloudflare API หากยังไม่ได้ตั้งค่า -->
+    <div id="setupBanner" class="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-indigo-950/90 via-slate-900 to-slate-900 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2 text-indigo-300 font-semibold text-sm">
+          <span>⚡</span> พร้อมใช้งานทั้งบน GitHub Pages และเชื่อมฐานข้อมูล Cloudflare Worker
+        </div>
+        <p class="text-xs sm:text-sm text-slate-300">
+          ขณะนี้ระบบกำลังแสดงข้อมูลในเบราว์เซอร์ของคุณ คุณสามารถกด <b>"ตั้งค่า Cloudflare API"</b> เพื่อใส่ URL ของ Cloudflare Worker ให้ซิงค์ข้อมูลและแจ้งเตือนผ่าน Telegram อัตโนมัติได้ทันที
+        </p>
+      </div>
+      <button onclick="openSettingsModal()" class="shrink-0 px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs sm:text-sm font-semibold transition">
+        เชื่อมต่อ Cloudflare API
+      </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+          <span>ค่าใช้จ่ายเฉลี่ย / เดือน</span>
+          <span class="text-lg">📅</span>
+        </div>
+        <div id="statMonthly" class="mt-2 text-2xl sm:text-3xl font-bold text-white">฿0</div>
+        <p class="mt-1 text-xs text-slate-400">คำนวณรวมแพ็กเกจที่เปิดใช้งาน</p>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+          <span>ประมาณการรวม / ปี</span>
+          <span class="text-lg">📊</span>
+        </div>
+        <div id="statYearly" class="mt-2 text-2xl sm:text-3xl font-bold text-cyan-400">฿0</div>
+        <p class="mt-1 text-xs text-slate-400">ยอดรวมตลอด 12 เดือน</p>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+          <span>บริการที่ใช้งานอยู่ (Active)</span>
+          <span class="text-lg">✅</span>
+        </div>
+        <div id="statActiveCount" class="mt-2 text-2xl sm:text-3xl font-bold text-emerald-400">0 รายการ</div>
+        <p id="statTotalCount" class="mt-1 text-xs text-slate-400">จากทั้งหมด 0 รายการ</p>
+      </div>
+
+      <div class="glass rounded-2xl p-5">
+        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+          <span>ใกล้ตัดบิล (ภายใน 7 วัน)</span>
+          <span class="text-lg">🔔</span>
+        </div>
+        <div id="statDueSoon" class="mt-2 text-2xl sm:text-3xl font-bold text-amber-400">0 รายการ</div>
+        <p class="mt-1 text-xs text-slate-400">แจ้งเตือนเข้า Telegram อัตโนมัติ</p>
+      </div>
+    </section>
+
+    <!-- Filter & Search Bar -->
+    <section class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+        <button onclick="setFilter('all')" id="filter-all" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-indigo-600 text-white transition">
+          ทั้งหมด
+        </button>
+        <button onclick="setFilter('due_soon')" id="filter-due_soon" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          🔔 ใกล้ครบกำหนด
+        </button>
+        <button onclick="setFilter('active')" id="filter-active" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          กำลังใช้งาน
+        </button>
+        <button onclick="setFilter('paused')" id="filter-paused" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+          ระงับ/ยกเลิก
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input
+          id="searchInput"
+          type="text"
+          oninput="renderSubscriptions()"
+          placeholder="ค้นหาชื่อบริการ, หมวดหมู่, บันทึก..."
+          class="w-full sm:w-64 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+        />
+        <button onclick="loadSubscriptions()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="รีเฟรชข้อมูล">
+          🔄
+        </button>
+      </div>
+    </section>
+
+    <!-- Subscription List Grid -->
+    <section>
+      <div id="subGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Cards rendered by JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden glass rounded-2xl p-12 text-center space-y-3">
+        <div class="text-4xl">📭</div>
+        <h3 class="text-lg font-semibold text-white">ยังไม่มีรายการ Subscription</h3>
+        <p class="text-sm text-slate-400 max-w-md mx-auto">
+          เริ่มต้นเพิ่มรายการค่าบริการรายเดือนหรือรายปี เช่น Netflix, Spotify, YouTube Premium, ChatGPT, iCloud เพื่อติดตามค่าใช้จ่ายและรับแจ้งเตือนผ่าน Telegram
+        </p>
+        <button onclick="openSubModal()" class="mt-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">
+          ＋ เพิ่มรายการแรกของคุณ
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal: เพิ่ม / แก้ไข Subscription -->
+  <div id="subModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h2 id="modalTitle" class="text-lg font-bold text-white">เพิ่มรายการ Subscription</h2>
+        <button onclick="closeSubModal()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <form id="subForm" onsubmit="saveSubscription(event)" class="space-y-4">
+        <input type="hidden" id="subId" />
+
+        <!-- Quick Presets -->
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5">เลือกบริการยอดนิยมด่วน (คลิกเพื่อเติมอัตโนมัติ)</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="fillPreset('Netflix', 'Entertainment', 419, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700">🎬 Netflix</button>
+            <button type="button" onclick="fillPreset('YouTube Premium', 'Entertainment', 179, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700">▶️ YouTube</button>
+            <button type="button" onclick="fillPreset('Spotify Premium', 'Entertainment', 139, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700">🎵 Spotify</button>
+            <button type="button" onclick="fillPreset('ChatGPT Plus', 'AI & Tools', 690, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700">🤖 ChatGPT</button>
+            <button type="button" onclick="fillPreset('iCloud+ 200GB', 'Cloud & Storage', 99, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700">☁️ iCloud+</button>
+            <button type="button" onclick="fillPreset('Canva Pro', 'Work & Design', 229, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700">🎨 Canva</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อบริการ *</label>
+            <input id="subName" type="text" required placeholder="เช่น Netflix, Spotify" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">หมวดหมู่</label>
+            <select id="subCategory" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+              <option value="Entertainment">🎬 บันเทิง (Entertainment)</option>
+              <option value="AI & Tools">🤖 AI & เครื่องมือ (AI & Tools)</option>
+              <option value="Cloud & Storage">☁️ คลาวด์ & เซิร์ฟเวอร์ (Cloud)</option>
+              <option value="Work & Design">💼 งาน & ออกแบบ (Work)</option>
+              <option value="Gaming">🎮 เกม (Gaming)</option>
+              <option value="Utilities">📱 อินเทอร์เน็ต & สาธารณูปโภค</option>
+              <option value="General">📌 อื่นๆ (General)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">ราคา *</label>
+            <input id="subPrice" type="number" step="0.01" min="0" required placeholder="0.00" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">สกุลเงิน</label>
+            <select id="subCurrency" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+              <option value="THB">THB (฿)</option>
+              <option value="USD">USD ($)</option>
+            </select>
+          </div>
+
+          <div class="col-span-2 sm:col-span-1">
+            <label class="block text-xs font-medium text-slate-300 mb-1">รอบการตัดบิล</label>
+            <select id="subCycle" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+              <option value="monthly">รายเดือน (Monthly)</option>
+              <option value="yearly">รายปี (Yearly)</option>
+              <option value="weekly">รายสัปดาห์ (Weekly)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">วันที่ตัดบิลครั้งถัดไป *</label>
+            <input id="subNextDate" type="date" required class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">แจ้งเตือน Telegram ล่วงหน้า (วัน)</label>
+            <input id="subRemindDays" type="number" min="0" max="60" value="3" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">สถานะ</label>
+            <select id="subStatus" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+              <option value="active">✅ กำลังใช้งาน (Active)</option>
+              <option value="paused">⏸️ พักชั่วคราว/ยกเลิก (Paused)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center pt-5">
+            <label class="inline-flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-slate-300">
+              <input id="subAutoRenew" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-600" />
+              <span>เลื่อนรอบบิลถัดไปอัตโนมัติเมื่อถึงกำหนด</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">บันทึกเพิ่มเติม (เช่น ตัดบัตรใบไหน / แชร์กับใคร)</label>
+          <input id="subNotes" type="text" placeholder="เช่น ตัดบัตร KBank / แชร์ 4 คน" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeSubModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">
+            ยกเลิก
+          </button>
+          <button type="submit" id="saveSubBtn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/20 transition">
+            บันทึกรายการ
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: ตั้งค่าเชื่อมต่อ Cloudflare Worker API & ทดสอบ Telegram -->
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <span>⚙️</span> ตั้งค่า Cloudflare Worker API & Telegram
+        </h2>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">
+            Cloudflare Worker API URL
+          </label>
+          <input
+            id="apiUrlInput"
+            type="url"
+            placeholder="เช่น https://subscription-tracker-api.yourname.workers.dev"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+          />
+          <p class="mt-1.5 text-xs text-slate-400">
+            ใส่ URL ของ Cloudflare Worker ที่คุณ Deploy ไว้ (หากเว้นว่างไว้ ระบบจะเก็บข้อมูลใน LocalStorage ของเบราว์เซอร์แทน)
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-300">สถานะการเชื่อมต่อ</span>
+            <span id="connectionStatusText" class="text-xs text-slate-400">ยังไม่ได้ตรวจสอบ</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="testApiConnection()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
+              🔌 ทดสอบเชื่อมต่อ API
+            </button>
+            <button type="button" onclick="sendTestTelegram()" class="px-3.5 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-xs font-medium text-sky-300 border border-sky-500/30 transition">
+              ✈️ ส่งข้อความทดสอบเข้า Telegram
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">
+          ปิด
+        </button>
+        <button type="button" onclick="saveApiSettings()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">
+          บันทึกการตั้งค่า
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm shadow-xl flex items-center gap-2">
+    <span id="toastText"></span>
+  </div>
+
+  <script>
+    // ========================================================
+    // ตั้งค่าเริ่มต้น: หากคุณมี URL ของ Cloudflare Worker แล้ว
+    // สามารถนำมาใส่ใน DEFAULT_API_URL ด้านล่างนี้ก่อนอัปขึ้น GitHub ได้เลย
+    // ========================================================
+    const DEFAULT_API_URL = "https://subscription-tracker-api.nawamin2025.workers.dev";
+
+    const STORAGE_KEY_API = "sub_tracker_api_url";
+    const STORAGE_KEY_LOCAL_DATA = "sub_tracker_local_items";
+
+    let subscriptions = [];
+    let currentFilter = "all";
+
+    // ค่าอัตราแลกเปลี่ยนโดยประมาณสำหรับคำนวณยอดรวมเป็นเงินบาท
+    const FX_TO_THB = {
+      THB: 1,
+      USD: 34.5,
+    };
+
+    function getApiBaseUrl() {
+      const saved = localStorage.getItem(STORAGE_KEY_API);
+      const url = (saved && saved.trim() ? saved : DEFAULT_API_URL).trim();
+      return url.replace(/\/+$/, "");
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById("toast");
+      const text = document.getElementById("toastText");
+      text.textContent = message;
+      toast.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-sm shadow-xl flex items-center gap-2 border ${
+        isError
+          ? "bg-rose-950/90 border-rose-500/40 text-rose-200"
+          : "bg-slate-900/95 border-indigo-500/40 text-slate-100"
+      }`;
+      toast.classList.remove("hidden");
+      setTimeout(() => toast.classList.add("hidden"), 3500);
+    }
+
+    function getTodayStr() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset() * 60000;
+      return new Date(now.getTime() - offset).toISOString().split("T")[0];
+    }
+
+    function addDaysStr(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      const offset = d.getTimezoneOffset() * 60000;
+      return new Date(d.getTime() - offset).toISOString().split("T")[0];
+    }
+
+    function getDaysLeft(dateStr) {
+      const today = new Date(getTodayStr() + "T00:00:00");
+      const target = new Date(dateStr + "T00:00:00");
+      return Math.round((target - today) / (1000 * 60 * 60 * 24));
+    }
+
+    function getDefaultSampleData() {
+      return [
+        {
+          id: 1,
+          name: "Netflix Premium",
+          category: "Entertainment",
+          price: 419,
+          currency: "THB",
+          billing_cycle: "monthly",
+          next_billing_date: addDaysStr(2),
+          remind_days_before: 3,
+          auto_renew: 1,
+          notes: "ตัดบัตร KBank / แชร์กับครอบครัว",
+          status: "active",
+        },
+        {
+          id: 2,
+          name: "YouTube Premium",
+          category: "Entertainment",
+          price: 179,
+          currency: "THB",
+          billing_cycle: "monthly",
+          next_billing_date: addDaysStr(11),
+          remind_days_before: 3,
+          auto_renew: 1,
+          notes: "แพ็กเกจรายเดือน",
+          status: "active",
+        },
+        {
+          id: 3,
+          name: "ChatGPT Plus",
+          category: "AI & Tools",
+          price: 690,
+          currency: "THB",
+          billing_cycle: "monthly",
+          next_billing_date: addDaysStr(1),
+          remind_days_before: 3,
+          auto_renew: 1,
+          notes: "ใช้ทำงานทุกวัน",
+          status: "active",
+        },
+      ];
+    }
+
+    function updateModeUI() {
+      const apiUrl = getApiBaseUrl();
+      const badge = document.getElementById("modeBadge");
+      const banner = document.getElementById("setupBanner");
+
+      if (apiUrl) {
+        badge.textContent = "☁️ เชื่อมต่อ Cloudflare D1 แล้ว";
+        badge.className =
+          "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal";
+        banner.classList.add("hidden");
+      } else {
+        badge.textContent = "💾 โหมด Local (เบราว์เซอร์)";
+        badge.className =
+          "text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal";
+        banner.classList.remove("hidden");
+      }
+    }
+
+    async function loadSubscriptions() {
+      updateModeUI();
+      const apiUrl = getApiBaseUrl();
+
+      if (!apiUrl) {
+        const raw = localStorage.getItem(STORAGE_KEY_LOCAL_DATA);
+        if (!raw) {
+          subscriptions = getDefaultSampleData();
+          localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
+        } else {
+          subscriptions = JSON.parse(raw);
+        }
+        renderSubscriptions();
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiUrl}/api/subscriptions`);
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "ดึงข้อมูลไม่สำเร็จ");
+        subscriptions = json.data || [];
+        renderSubscriptions();
+      } catch (err) {
+        showToast(`เชื่อมต่อ Cloudflare API ไม่สำเร็จ: ${err.message}`, true);
+      }
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      ["all", "due_soon", "active", "paused"].forEach((key) => {
+        const btn = document.getElementById(`filter-${key}`);
+        if (key === filter) {
+          btn.className =
+            "px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-indigo-600 text-white transition";
+        } else {
+          btn.className =
+            "px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+        }
+      });
+      renderSubscriptions();
+    }
+
+    function updateSummaryStats() {
+      let monthlyTHB = 0;
+      let activeCount = 0;
+      let dueSoonCount = 0;
+
+      subscriptions.forEach((sub) => {
+        if (sub.status === "active") {
+          activeCount++;
+          const rate = FX_TO_THB[sub.currency] || 1;
+          const priceTHB = Number(sub.price || 0) * rate;
+
+          if (sub.billing_cycle === "yearly") {
+            monthlyTHB += priceTHB / 12;
+          } else if (sub.billing_cycle === "weekly") {
+            monthlyTHB += (priceTHB * 52) / 12;
+          } else {
+            monthlyTHB += priceTHB;
+          }
+
+          const daysLeft = getDaysLeft(sub.next_billing_date);
+          if (daysLeft >= 0 && daysLeft <= 7) {
+            dueSoonCount++;
+          }
+        }
+      });
+
+      const yearlyTHB = monthlyTHB * 12;
+
+      document.getElementById("statMonthly").textContent =
+        "฿" + Math.round(monthlyTHB).toLocaleString();
+      document.getElementById("statYearly").textContent =
+        "฿" + Math.round(yearlyTHB).toLocaleString();
+      document.getElementById("statActiveCount").textContent = `${activeCount} รายการ`;
+      document.getElementById("statTotalCount").textContent = `จากทั้งหมด ${subscriptions.length} รายการ`;
+      document.getElementById("statDueSoon").textContent = `${dueSoonCount} รายการ`;
+    }
+
+    function getCategoryIcon(cat) {
+      const map = {
+        Entertainment: "🎬",
+        "AI & Tools": "🤖",
+        "Cloud & Storage": "☁️",
+        "Work & Design": "💼",
+        Gaming: "🎮",
+        Utilities: "📱",
+      };
+      return map[cat] || "📌";
+    }
+
+    function renderSubscriptions() {
+      updateSummaryStats();
+
+      const query = (document.getElementById("searchInput").value || "")
+        .trim()
+        .toLowerCase();
+
+      const filtered = subscriptions
+        .filter((sub) => {
+          if (currentFilter === "active" && sub.status !== "active") return false;
+          if (currentFilter === "paused" && sub.status === "active") return false;
+          if (currentFilter === "due_soon") {
+            const d = getDaysLeft(sub.next_billing_date);
+            if (sub.status !== "active" || d > 7) return false;
+          }
+          if (query) {
+            const hay = `${sub.name} ${sub.category} ${sub.notes || ""}`.toLowerCase();
+            return hay.includes(query);
+          }
+          return true;
+        })
+        .sort((a, b) => a.next_billing_date.localeCompare(b.next_billing_date));
+
+      const grid = document.getElementById("subGrid");
+      const empty = document.getElementById("emptyState");
+
+      if (filtered.length === 0) {
+        grid.innerHTML = "";
+        empty.classList.remove("hidden");
+        return;
+      }
+
+      empty.classList.add("hidden");
+
+      grid.innerHTML = filtered
+        .map((sub) => {
+          const daysLeft = getDaysLeft(sub.next_billing_date);
+          const remindDays = Number(sub.remind_days_before ?? 3);
+
+          let dueBadge = "";
+          if (sub.status !== "active") {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 text-slate-400">⏸️ พักการใช้งาน</span>`;
+          } else if (daysLeft < 0) {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">⚠️ เลยกำหนด ${Math.abs(daysLeft)} วัน</span>`;
+          } else if (daysLeft === 0) {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold animate-pulse">🚨 ตัดบิลวันนี้!</span>`;
+          } else if (daysLeft <= remindDays) {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">🔔 อีก ${daysLeft} วัน</span>`;
+          } else {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">อีก ${daysLeft} วัน</span>`;
+          }
+
+          const cycleText =
+            sub.billing_cycle === "yearly"
+              ? "/ ปี"
+              : sub.billing_cycle === "weekly"
+              ? "/ สัปดาห์"
+              : "/ เดือน";
+
+          const currencySymbol = sub.currency === "USD" ? "$" : "฿";
+
+          return `
+            <div class="glass rounded-2xl p-5 flex flex-col justify-between gap-4 hover:border-indigo-500/40 transition">
+              <div class="space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-center text-xl shrink-0">
+                      ${getCategoryIcon(sub.category)}
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-white text-base leading-snug">${escapeHtml(sub.name)}</h3>
+                      <span class="text-xs text-slate-400">${escapeHtml(sub.category)}</span>
+                    </div>
+                  </div>
+                  ${dueBadge}
+                </div>
+
+                <div class="pt-2 border-t border-slate-800/80 flex items-baseline justify-between">
+                  <div>
+                    <span class="text-2xl font-bold text-white">${currencySymbol}${Number(sub.price).toLocaleString()}</span>
+                    <span class="text-xs text-slate-400">${cycleText}</span>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-xs text-slate-400">ตัดบิลถัดไป</div>
+                    <div class="text-xs font-semibold text-slate-200">${sub.next_billing_date}</div>
+                  </div>
+                </div>
+
+                ${
+                  sub.notes
+                    ? `<div class="text-xs text-slate-400 bg-slate-900/70 px-3 py-2 rounded-xl border border-slate-800/80">📝 ${escapeHtml(sub.notes)}</div>`
+                    : ""
+                }
+              </div>
+
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                <span class="text-slate-400">🔔 เตือนล่วงหน้า ${remindDays} วัน</span>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="renewNextCycle(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/25 transition" title="จ่ายแล้ว / เลื่อนไปรอบบิลถัดไป">
+                    ⏭️ รอบถัดไป
+                  </button>
+                  <button onclick="openSubModal(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+                    แก้ไข
+                  </button>
+                  <button onclick="deleteSubscription(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 transition">
+                    ลบ
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function fillPreset(name, category, price, cycle) {
+      document.getElementById("subName").value = name;
+      document.getElementById("subCategory").value = category;
+      document.getElementById("subPrice").value = price;
+      document.getElementById("subCycle").value = cycle;
+    }
+
+    function openSubModal(id = null) {
+      const modal = document.getElementById("subModal");
+      const title = document.getElementById("modalTitle");
+      document.getElementById("subForm").reset();
+
+      if (id) {
+        const sub = subscriptions.find((s) => Number(s.id) === Number(id));
+        if (!sub) return;
+        title.textContent = "แก้ไขรายการ Subscription";
+        document.getElementById("subId").value = sub.id;
+        document.getElementById("subName").value = sub.name;
+        document.getElementById("subCategory").value = sub.category || "General";
+        document.getElementById("subPrice").value = sub.price;
+        document.getElementById("subCurrency").value = sub.currency || "THB";
+        document.getElementById("subCycle").value = sub.billing_cycle || "monthly";
+        document.getElementById("subNextDate").value = sub.next_billing_date;
+        document.getElementById("subRemindDays").value = sub.remind_days_before ?? 3;
+        document.getElementById("subStatus").value = sub.status || "active";
+        document.getElementById("subAutoRenew").checked = Boolean(sub.auto_renew);
+        document.getElementById("subNotes").value = sub.notes || "";
+      } else {
+        title.textContent = "เพิ่มรายการ Subscription ใหม่";
+        document.getElementById("subId").value = "";
+        document.getElementById("subNextDate").value = addDaysStr(30);
+        document.getElementById("subRemindDays").value = 3;
+        document.getElementById("subAutoRenew").checked = true;
+      }
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeSubModal() {
+      const modal = document.getElementById("subModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    async function saveSubscription(e) {
+      e.preventDefault();
+      const id = document.getElementById("subId").value;
+      const payload = {
+        name: document.getElementById("subName").value.trim(),
+        category: document.getElementById("subCategory").value,
+        price: Number(document.getElementById("subPrice").value || 0),
+        currency: document.getElementById("subCurrency").value,
+        billing_cycle: document.getElementById("subCycle").value,
+        next_billing_date: document.getElementById("subNextDate").value,
+        remind_days_before: Number(document.getElementById("subRemindDays").value || 3),
+        status: document.getElementById("subStatus").value,
+        auto_renew: document.getElementById("subAutoRenew").checked ? 1 : 0,
+        notes: document.getElementById("subNotes").value.trim(),
+      };
+
+      const apiUrl = getApiBaseUrl();
+
+      if (!apiUrl) {
+        if (id) {
+          subscriptions = subscriptions.map((s) =>
+            Number(s.id) === Number(id) ? { ...s, ...payload, id: Number(id) } : s
+          );
+          showToast("บันทึกการแก้ไขเรียบร้อย (Local)");
+        } else {
+          const newId = Date.now();
+          subscriptions.push({ ...payload, id: newId });
+          showToast("เพิ่มรายการ Subscription ใหม่แล้ว (Local)");
+        }
+        localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
+        closeSubModal();
+        renderSubscriptions();
+        return;
+      }
+
+      try {
+        const endpoint = id
+          ? `${apiUrl}/api/subscriptions/${id}`
+          : `${apiUrl}/api/subscriptions`;
+        const method = id ? "PUT" : "POST";
+
+        const res = await fetch(endpoint, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "บันทึกไม่สำเร็จ");
+
+        closeSubModal();
+        showToast(
+          id
+            ? "อัปเดตข้อมูลบน Cloudflare D1 สำเร็จ!"
+            : "เพิ่มรายการใหม่ลง Cloudflare D1 สำเร็จ!"
+        );
+        await loadSubscriptions();
+      } catch (err) {
+        showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
+      }
+    }
+
+    async function renewNextCycle(id) {
+      const sub = subscriptions.find((s) => Number(s.id) === Number(id));
+      if (!sub) return;
+
+      const apiUrl = getApiBaseUrl();
+      if (!apiUrl) {
+        const d = new Date(sub.next_billing_date + "T00:00:00Z");
+        if (sub.billing_cycle === "weekly") d.setUTCDate(d.getUTCDate() + 7);
+        else if (sub.billing_cycle === "yearly") d.setUTCFullYear(d.getUTCFullYear() + 1);
+        else d.setUTCMonth(d.getUTCMonth() + 1);
+
+        sub.next_billing_date = d.toISOString().split("T")[0];
+        localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
+        renderSubscriptions();
+        showToast(`เลื่อนวันตัดบิล ${sub.name} ไปเป็น ${sub.next_billing_date}`);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiUrl}/api/subscriptions/${id}/renew`, {
+          method: "POST",
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "เลื่อนรอบบิลไม่สำเร็จ");
+        showToast(`เลื่อนรอบบิลเป็น ${json.next_billing_date} เรียบร้อย!`);
+        await loadSubscriptions();
+      } catch (err) {
+        showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
+      }
+    }
+
+    async function deleteSubscription(id) {
+      const sub = subscriptions.find((s) => Number(s.id) === Number(id));
+      if (!sub) return;
+      if (!confirm(`ต้องการลบรายการ "${sub.name}" ใช่หรือไม่?`)) return;
+
+      const apiUrl = getApiBaseUrl();
+      if (!apiUrl) {
+        subscriptions = subscriptions.filter((s) => Number(s.id) !== Number(id));
+        localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
+        renderSubscriptions();
+        showToast("ลบรายการเรียบร้อยแล้ว");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${apiUrl}/api/subscriptions/${id}`, {
+          method: "DELETE",
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "ลบไม่สำเร็จ");
+        showToast("ลบรายการจากฐานข้อมูล Cloudflare D1 แล้ว");
+        await loadSubscriptions();
+      } catch (err) {
+        showToast(`ลบไม่สำเร็จ: ${err.message}`, true);
+      }
+    }
+
+    // ========================================================
+    // Settings & Telegram Notification Controls
+    // ========================================================
+    function openSettingsModal() {
+      document.getElementById("apiUrlInput").value = getApiBaseUrl();
+      document.getElementById("connectionStatusText").textContent = "พร้อมตรวจสอบ";
+      const modal = document.getElementById("settingsModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeSettingsModal() {
+      const modal = document.getElementById("settingsModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    async function saveApiSettings() {
+      const url = document.getElementById("apiUrlInput").value.trim().replace(/\/+$/, "");
+      localStorage.setItem(STORAGE_KEY_API, url);
+      closeSettingsModal();
+      showToast(url ? "บันทึก Cloudflare Worker URL แล้ว" : "สลับเป็นโหมด Local แล้ว");
+      await loadSubscriptions();
+    }
+
+    async function testApiConnection() {
+      const url = document.getElementById("apiUrlInput").value.trim().replace(/\/+$/, "");
+      const statusEl = document.getElementById("connectionStatusText");
+
+      if (!url) {
+        statusEl.textContent = "⚠️ กรุณาใส่ URL ของ Cloudflare Worker";
+        statusEl.className = "text-xs text-amber-400";
+        return;
+      }
+
+      statusEl.textContent = "⏳ กำลังเชื่อมต่อ...";
+      statusEl.className = "text-xs text-slate-300";
+
+      try {
+        const res = await fetch(`${url}/api/health`);
+        const json = await res.json();
+        if (res.ok && json.ok) {
+          statusEl.textContent = json.telegramConfigured
+            ? "✅ เชื่อมต่อสำเร็จ (ตั้งค่า Telegram พร้อมแล้ว)"
+            : "✅ เชื่อมต่อ API สำเร็จ (แต่ยังไม่ได้ตั้งค่า Telegram Token)";
+          statusEl.className = "text-xs text-emerald-400 font-medium";
+        } else {
+          throw new Error(json.error || "API ตอบกลับผิดพลาด");
+        }
+      } catch (err) {
+        statusEl.textContent = `❌ เชื่อมต่อไม่สำเร็จ: ${err.message}`;
+        statusEl.className = "text-xs text-rose-400";
+      }
+    }
+
+    async function sendTestTelegram() {
+      const url = (
+        document.getElementById("apiUrlInput").value.trim() || getApiBaseUrl()
+      ).replace(/\/+$/, "");
+
+      if (!url) {
+        showToast("กรุณาใส่ Cloudflare Worker API URL ก่อนทดสอบ Telegram", true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${url}/api/notify/test`, { method: "POST" });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "ส่งไม่สำเร็จ");
+        showToast("✈️ ส่งข้อความทดสอบเข้า Telegram สำเร็จ!");
+      } catch (err) {
+        showToast(`ส่ง Telegram ไม่สำเร็จ: ${err.message}`, true);
+      }
+    }
+
+    async function triggerDueCheck() {
+      const apiUrl = getApiBaseUrl();
+      if (!apiUrl) {
+        openSettingsModal();
+        showToast("กรุณาเชื่อมต่อ Cloudflare Worker API ก่อนส่งแจ้งเตือน Telegram", true);
+        return;
+      }
+
+      try {
+        showToast("⏳ กำลังตรวจสอบรายการและส่งเข้า Telegram...");
+        const res = await fetch(`${apiUrl}/api/notify/check`, { method: "POST" });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "ส่งแจ้งเตือนไม่สำเร็จ");
+
+        const count = json.report?.notificationsSent?.length || 0;
+        if (count > 0) {
+          showToast(`✅ ส่งแจ้งเตือนเข้า Telegram สำเร็จ (${count} รายการที่ใกล้ครบกำหนด)!`);
+        } else {
+          showToast("ℹ️ ไม่มีรายการที่ถึงกำหนดแจ้งเตือนในวันนี้");
+        }
+        await loadSubscriptions();
+      } catch (err) {
+        showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
+      }
+    }
+
+    // เริ่มต้นโหลดข้อมูลเมื่อเปิดหน้าเว็บ
+    window.addEventListener("DOMContentLoaded", loadSubscriptions);
+  </script>
+</body>
+</html>
