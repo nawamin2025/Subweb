@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Subscription Tracker | ระบบจัดการค่าบริการ & แจ้งเตือน Telegram</title>
+  <title>Subscription Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
@@ -31,29 +31,20 @@
 
   <!-- Top Navbar -->
   <header class="sticky top-0 z-30 glass border-b border-slate-800/80">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-xl">
           💳
         </div>
         <div>
-          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">
             Subscription Tracker
-            <span id="modeBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal">
-              โหมดทดลอง (Local)
-            </span>
           </h1>
-          <p class="text-xs text-slate-400">Cloudflare D1 + GitHub Pages + Telegram Alert</p>
+          <p class="text-xs text-slate-400">ระบบติดตามค่าบริการรายเดือน & แจ้งเตือนอัตโนมัติ</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
-        <button onclick="openSettingsModal()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium border border-slate-700 transition flex items-center gap-1.5">
-          <span>⚙️</span> ตั้งค่า Cloudflare API
-        </button>
-        <button onclick="triggerDueCheck()" class="px-3 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-xs sm:text-sm font-medium border border-sky-500/30 transition flex items-center gap-1.5" title="เช็ครายการใกล้ครบกำหนดและส่งเข้า Telegram ทันที">
-          <span>📨</span> ส่งแจ้งเตือนเข้า Telegram
-        </button>
+      <div class="flex items-center gap-2">
         <button onclick="openSubModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/25 transition flex items-center gap-1.5">
           <span>＋</span> เพิ่มรายการใหม่
         </button>
@@ -62,21 +53,6 @@
   </header>
 
   <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-
-    <!-- Banner แนะนำการเชื่อมต่อ Cloudflare API หากยังไม่ได้ตั้งค่า -->
-    <div id="setupBanner" class="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-indigo-950/90 via-slate-900 to-slate-900 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2 text-indigo-300 font-semibold text-sm">
-          <span>⚡</span> พร้อมใช้งานทั้งบน GitHub Pages และเชื่อมฐานข้อมูล Cloudflare Worker
-        </div>
-        <p class="text-xs sm:text-sm text-slate-300">
-          ขณะนี้ระบบกำลังแสดงข้อมูลในเบราว์เซอร์ของคุณ คุณสามารถกด <b>"ตั้งค่า Cloudflare API"</b> เพื่อใส่ URL ของ Cloudflare Worker ให้ซิงค์ข้อมูลและแจ้งเตือนผ่าน Telegram อัตโนมัติได้ทันที
-        </p>
-      </div>
-      <button onclick="openSettingsModal()" class="shrink-0 px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs sm:text-sm font-semibold transition">
-        เชื่อมต่อ Cloudflare API
-      </button>
-    </div>
 
     <!-- Summary Cards -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -282,59 +258,6 @@
     </div>
   </div>
 
-  <!-- Modal: ตั้งค่าเชื่อมต่อ Cloudflare Worker API & ทดสอบ Telegram -->
-  <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h2 class="text-lg font-bold text-white flex items-center gap-2">
-          <span>⚙️</span> ตั้งค่า Cloudflare Worker API & Telegram
-        </h2>
-        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">
-            Cloudflare Worker API URL
-          </label>
-          <input
-            id="apiUrlInput"
-            type="url"
-            placeholder="เช่น https://subscription-tracker-api.yourname.workers.dev"
-            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
-          />
-          <p class="mt-1.5 text-xs text-slate-400">
-            ใส่ URL ของ Cloudflare Worker ที่คุณ Deploy ไว้ (หากเว้นว่างไว้ ระบบจะเก็บข้อมูลใน LocalStorage ของเบราว์เซอร์แทน)
-          </p>
-        </div>
-
-        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-300">สถานะการเชื่อมต่อ</span>
-            <span id="connectionStatusText" class="text-xs text-slate-400">ยังไม่ได้ตรวจสอบ</span>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" onclick="testApiConnection()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition">
-              🔌 ทดสอบเชื่อมต่อ API
-            </button>
-            <button type="button" onclick="sendTestTelegram()" class="px-3.5 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-xs font-medium text-sky-300 border border-sky-500/30 transition">
-              ✈️ ส่งข้อความทดสอบเข้า Telegram
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-        <button type="button" onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">
-          ปิด
-        </button>
-        <button type="button" onclick="saveApiSettings()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">
-          บันทึกการตั้งค่า
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm shadow-xl flex items-center gap-2">
     <span id="toastText"></span>
@@ -342,13 +265,9 @@
 
   <script>
     // ========================================================
-    // ตั้งค่าเริ่มต้น: หากคุณมี URL ของ Cloudflare Worker แล้ว
-    // สามารถนำมาใส่ใน DEFAULT_API_URL ด้านล่างนี้ก่อนอัปขึ้น GitHub ได้เลย
+    // ฝัง URL ของ Cloudflare Worker API แบบถาวร
     // ========================================================
-    const DEFAULT_API_URL = "https://subscription-tracker-api.nawamin2025.workers.dev";
-
-    const STORAGE_KEY_API = "sub_tracker_api_url";
-    const STORAGE_KEY_LOCAL_DATA = "sub_tracker_local_items";
+    const API_BASE_URL = "https://subscription-tracker-api.nawamin2025.workers.dev";
 
     let subscriptions = [];
     let currentFilter = "all";
@@ -358,12 +277,6 @@
       THB: 1,
       USD: 34.5,
     };
-
-    function getApiBaseUrl() {
-      const saved = localStorage.getItem(STORAGE_KEY_API);
-      const url = (saved && saved.trim() ? saved : DEFAULT_API_URL).trim();
-      return url.replace(/\/+$/, "");
-    }
 
     function showToast(message, isError = false) {
       const toast = document.getElementById("toast");
@@ -397,92 +310,15 @@
       return Math.round((target - today) / (1000 * 60 * 60 * 24));
     }
 
-    function getDefaultSampleData() {
-      return [
-        {
-          id: 1,
-          name: "Netflix Premium",
-          category: "Entertainment",
-          price: 419,
-          currency: "THB",
-          billing_cycle: "monthly",
-          next_billing_date: addDaysStr(2),
-          remind_days_before: 3,
-          auto_renew: 1,
-          notes: "ตัดบัตร KBank / แชร์กับครอบครัว",
-          status: "active",
-        },
-        {
-          id: 2,
-          name: "YouTube Premium",
-          category: "Entertainment",
-          price: 179,
-          currency: "THB",
-          billing_cycle: "monthly",
-          next_billing_date: addDaysStr(11),
-          remind_days_before: 3,
-          auto_renew: 1,
-          notes: "แพ็กเกจรายเดือน",
-          status: "active",
-        },
-        {
-          id: 3,
-          name: "ChatGPT Plus",
-          category: "AI & Tools",
-          price: 690,
-          currency: "THB",
-          billing_cycle: "monthly",
-          next_billing_date: addDaysStr(1),
-          remind_days_before: 3,
-          auto_renew: 1,
-          notes: "ใช้ทำงานทุกวัน",
-          status: "active",
-        },
-      ];
-    }
-
-    function updateModeUI() {
-      const apiUrl = getApiBaseUrl();
-      const badge = document.getElementById("modeBadge");
-      const banner = document.getElementById("setupBanner");
-
-      if (apiUrl) {
-        badge.textContent = "☁️ เชื่อมต่อ Cloudflare D1 แล้ว";
-        badge.className =
-          "text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal";
-        banner.classList.add("hidden");
-      } else {
-        badge.textContent = "💾 โหมด Local (เบราว์เซอร์)";
-        badge.className =
-          "text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-normal";
-        banner.classList.remove("hidden");
-      }
-    }
-
     async function loadSubscriptions() {
-      updateModeUI();
-      const apiUrl = getApiBaseUrl();
-
-      if (!apiUrl) {
-        const raw = localStorage.getItem(STORAGE_KEY_LOCAL_DATA);
-        if (!raw) {
-          subscriptions = getDefaultSampleData();
-          localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
-        } else {
-          subscriptions = JSON.parse(raw);
-        }
-        renderSubscriptions();
-        return;
-      }
-
       try {
-        const res = await fetch(`${apiUrl}/api/subscriptions`);
+        const res = await fetch(`${API_BASE_URL}/api/subscriptions`);
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "ดึงข้อมูลไม่สำเร็จ");
         subscriptions = json.data || [];
         renderSubscriptions();
       } catch (err) {
-        showToast(`เชื่อมต่อ Cloudflare API ไม่สำเร็จ: ${err.message}`, true);
+        showToast(`ดึงข้อมูลไม่สำเร็จ: ${err.message}`, true);
       }
     }
 
@@ -734,29 +570,10 @@
         notes: document.getElementById("subNotes").value.trim(),
       };
 
-      const apiUrl = getApiBaseUrl();
-
-      if (!apiUrl) {
-        if (id) {
-          subscriptions = subscriptions.map((s) =>
-            Number(s.id) === Number(id) ? { ...s, ...payload, id: Number(id) } : s
-          );
-          showToast("บันทึกการแก้ไขเรียบร้อย (Local)");
-        } else {
-          const newId = Date.now();
-          subscriptions.push({ ...payload, id: newId });
-          showToast("เพิ่มรายการ Subscription ใหม่แล้ว (Local)");
-        }
-        localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
-        closeSubModal();
-        renderSubscriptions();
-        return;
-      }
-
       try {
         const endpoint = id
-          ? `${apiUrl}/api/subscriptions/${id}`
-          : `${apiUrl}/api/subscriptions`;
+          ? `${API_BASE_URL}/api/subscriptions/${id}`
+          : `${API_BASE_URL}/api/subscriptions`;
         const method = id ? "PUT" : "POST";
 
         const res = await fetch(endpoint, {
@@ -768,11 +585,7 @@
         if (!res.ok || !json.ok) throw new Error(json.error || "บันทึกไม่สำเร็จ");
 
         closeSubModal();
-        showToast(
-          id
-            ? "อัปเดตข้อมูลบน Cloudflare D1 สำเร็จ!"
-            : "เพิ่มรายการใหม่ลง Cloudflare D1 สำเร็จ!"
-        );
+        showToast(id ? "บันทึกการแก้ไขสำเร็จ!" : "เพิ่มรายการใหม่สำเร็จ!");
         await loadSubscriptions();
       } catch (err) {
         showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
@@ -783,22 +596,8 @@
       const sub = subscriptions.find((s) => Number(s.id) === Number(id));
       if (!sub) return;
 
-      const apiUrl = getApiBaseUrl();
-      if (!apiUrl) {
-        const d = new Date(sub.next_billing_date + "T00:00:00Z");
-        if (sub.billing_cycle === "weekly") d.setUTCDate(d.getUTCDate() + 7);
-        else if (sub.billing_cycle === "yearly") d.setUTCFullYear(d.getUTCFullYear() + 1);
-        else d.setUTCMonth(d.getUTCMonth() + 1);
-
-        sub.next_billing_date = d.toISOString().split("T")[0];
-        localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
-        renderSubscriptions();
-        showToast(`เลื่อนวันตัดบิล ${sub.name} ไปเป็น ${sub.next_billing_date}`);
-        return;
-      }
-
       try {
-        const res = await fetch(`${apiUrl}/api/subscriptions/${id}/renew`, {
+        const res = await fetch(`${API_BASE_URL}/api/subscriptions/${id}/renew`, {
           method: "POST",
         });
         const json = await res.json();
@@ -815,130 +614,19 @@
       if (!sub) return;
       if (!confirm(`ต้องการลบรายการ "${sub.name}" ใช่หรือไม่?`)) return;
 
-      const apiUrl = getApiBaseUrl();
-      if (!apiUrl) {
-        subscriptions = subscriptions.filter((s) => Number(s.id) !== Number(id));
-        localStorage.setItem(STORAGE_KEY_LOCAL_DATA, JSON.stringify(subscriptions));
-        renderSubscriptions();
-        showToast("ลบรายการเรียบร้อยแล้ว");
-        return;
-      }
-
       try {
-        const res = await fetch(`${apiUrl}/api/subscriptions/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/subscriptions/${id}`, {
           method: "DELETE",
         });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "ลบไม่สำเร็จ");
-        showToast("ลบรายการจากฐานข้อมูล Cloudflare D1 แล้ว");
+        showToast("ลบรายการเรียบร้อยแล้ว");
         await loadSubscriptions();
       } catch (err) {
         showToast(`ลบไม่สำเร็จ: ${err.message}`, true);
       }
     }
 
-    // ========================================================
-    // Settings & Telegram Notification Controls
-    // ========================================================
-    function openSettingsModal() {
-      document.getElementById("apiUrlInput").value = getApiBaseUrl();
-      document.getElementById("connectionStatusText").textContent = "พร้อมตรวจสอบ";
-      const modal = document.getElementById("settingsModal");
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-    }
-
-    function closeSettingsModal() {
-      const modal = document.getElementById("settingsModal");
-      modal.classList.add("hidden");
-      modal.classList.remove("flex");
-    }
-
-    async function saveApiSettings() {
-      const url = document.getElementById("apiUrlInput").value.trim().replace(/\/+$/, "");
-      localStorage.setItem(STORAGE_KEY_API, url);
-      closeSettingsModal();
-      showToast(url ? "บันทึก Cloudflare Worker URL แล้ว" : "สลับเป็นโหมด Local แล้ว");
-      await loadSubscriptions();
-    }
-
-    async function testApiConnection() {
-      const url = document.getElementById("apiUrlInput").value.trim().replace(/\/+$/, "");
-      const statusEl = document.getElementById("connectionStatusText");
-
-      if (!url) {
-        statusEl.textContent = "⚠️ กรุณาใส่ URL ของ Cloudflare Worker";
-        statusEl.className = "text-xs text-amber-400";
-        return;
-      }
-
-      statusEl.textContent = "⏳ กำลังเชื่อมต่อ...";
-      statusEl.className = "text-xs text-slate-300";
-
-      try {
-        const res = await fetch(`${url}/api/health`);
-        const json = await res.json();
-        if (res.ok && json.ok) {
-          statusEl.textContent = json.telegramConfigured
-            ? "✅ เชื่อมต่อสำเร็จ (ตั้งค่า Telegram พร้อมแล้ว)"
-            : "✅ เชื่อมต่อ API สำเร็จ (แต่ยังไม่ได้ตั้งค่า Telegram Token)";
-          statusEl.className = "text-xs text-emerald-400 font-medium";
-        } else {
-          throw new Error(json.error || "API ตอบกลับผิดพลาด");
-        }
-      } catch (err) {
-        statusEl.textContent = `❌ เชื่อมต่อไม่สำเร็จ: ${err.message}`;
-        statusEl.className = "text-xs text-rose-400";
-      }
-    }
-
-    async function sendTestTelegram() {
-      const url = (
-        document.getElementById("apiUrlInput").value.trim() || getApiBaseUrl()
-      ).replace(/\/+$/, "");
-
-      if (!url) {
-        showToast("กรุณาใส่ Cloudflare Worker API URL ก่อนทดสอบ Telegram", true);
-        return;
-      }
-
-      try {
-        const res = await fetch(`${url}/api/notify/test`, { method: "POST" });
-        const json = await res.json();
-        if (!res.ok || !json.ok) throw new Error(json.error || "ส่งไม่สำเร็จ");
-        showToast("✈️ ส่งข้อความทดสอบเข้า Telegram สำเร็จ!");
-      } catch (err) {
-        showToast(`ส่ง Telegram ไม่สำเร็จ: ${err.message}`, true);
-      }
-    }
-
-    async function triggerDueCheck() {
-      const apiUrl = getApiBaseUrl();
-      if (!apiUrl) {
-        openSettingsModal();
-        showToast("กรุณาเชื่อมต่อ Cloudflare Worker API ก่อนส่งแจ้งเตือน Telegram", true);
-        return;
-      }
-
-      try {
-        showToast("⏳ กำลังตรวจสอบรายการและส่งเข้า Telegram...");
-        const res = await fetch(`${apiUrl}/api/notify/check`, { method: "POST" });
-        const json = await res.json();
-        if (!res.ok || !json.ok) throw new Error(json.error || "ส่งแจ้งเตือนไม่สำเร็จ");
-
-        const count = json.report?.notificationsSent?.length || 0;
-        if (count > 0) {
-          showToast(`✅ ส่งแจ้งเตือนเข้า Telegram สำเร็จ (${count} รายการที่ใกล้ครบกำหนด)!`);
-        } else {
-          showToast("ℹ️ ไม่มีรายการที่ถึงกำหนดแจ้งเตือนในวันนี้");
-        }
-        await loadSubscriptions();
-      } catch (err) {
-        showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
-      }
-    }
-
-    // เริ่มต้นโหลดข้อมูลเมื่อเปิดหน้าเว็บ
     window.addEventListener("DOMContentLoaded", loadSubscriptions);
   </script>
 </body>
