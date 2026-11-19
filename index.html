@@ -40,7 +40,7 @@
           <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">
             Subscription Tracker
           </h1>
-          <p class="text-xs text-slate-400">ระบบติดตามค่าบริการรายเดือน & แจ้งเตือนอัตโนมัติ</p>
+          <p class="text-xs text-slate-400">ระบบติดตามค่าบริการ & แจ้งเตือนอัตโนมัติ</p>
         </div>
       </div>
 
@@ -85,7 +85,7 @@
 
       <div class="glass rounded-2xl p-5">
         <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-          <span>ใกล้ตัดบิล (ภายใน 7 วัน)</span>
+          <span>ใกล้ครบกำหนด (ภายใน 7 วัน)</span>
           <span class="text-lg">🔔</span>
         </div>
         <div id="statDueSoon" class="mt-2 text-2xl sm:text-3xl font-bold text-amber-400">0 รายการ</div>
@@ -96,21 +96,32 @@
     <!-- Filter & Search Bar -->
     <section class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
       <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-        <button onclick="setFilter('all')" id="filter-all" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-indigo-600 text-white transition">
+        <button onclick="setFilter('all')" id="filter-all" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-indigo-600 text-white transition whitespace-nowrap">
           ทั้งหมด
         </button>
-        <button onclick="setFilter('due_soon')" id="filter-due_soon" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+        <button onclick="setFilter('due_soon')" id="filter-due_soon" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">
           🔔 ใกล้ครบกำหนด
         </button>
-        <button onclick="setFilter('active')" id="filter-active" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+        <button onclick="setFilter('active')" id="filter-active" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">
           กำลังใช้งาน
         </button>
-        <button onclick="setFilter('paused')" id="filter-paused" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+        <button onclick="setFilter('paused')" id="filter-paused" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">
           ระงับ/ยกเลิก
+        </button>
+        <button onclick="setFilter('expired')" id="filter-expired" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap flex items-center gap-1.5">
+          <span>⌛ ที่หมดอายุแล้ว</span>
+          <span id="expiredCountBadge" class="hidden px-1.5 py-0.2 rounded-full text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30">0</span>
         </button>
       </div>
 
       <div class="flex items-center gap-2">
+        <button
+          id="clearExpiredBtn"
+          onclick="clearAllExpired()"
+          class="hidden px-3 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-medium transition whitespace-nowrap"
+        >
+          🗑️ ล้างที่หมดอายุทั้งหมด
+        </button>
         <input
           id="searchInput"
           type="text"
@@ -132,13 +143,13 @@
 
       <!-- Empty State -->
       <div id="emptyState" class="hidden glass rounded-2xl p-12 text-center space-y-3">
-        <div class="text-4xl">📭</div>
-        <h3 class="text-lg font-semibold text-white">ยังไม่มีรายการ Subscription</h3>
-        <p class="text-sm text-slate-400 max-w-md mx-auto">
-          เริ่มต้นเพิ่มรายการค่าบริการรายเดือนหรือรายปี เช่น Netflix, Spotify, YouTube Premium, ChatGPT, iCloud เพื่อติดตามค่าใช้จ่ายและรับแจ้งเตือนผ่าน Telegram
+        <div class="text-4xl" id="emptyIcon">📭</div>
+        <h3 class="text-lg font-semibold text-white" id="emptyTitle">ยังไม่มีรายการ Subscription</h3>
+        <p class="text-sm text-slate-400 max-w-md mx-auto" id="emptyDesc">
+          เริ่มต้นเพิ่มรายการค่าบริการรายเดือน รายปี หรือแบบครั้งเดียว (ไม่ต่ออายุ) เพื่อติดตามค่าใช้จ่ายและรับแจ้งเตือนผ่าน Telegram
         </p>
-        <button onclick="openSubModal()" class="mt-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">
-          ＋ เพิ่มรายการแรกของคุณ
+        <button id="emptyActionBtn" onclick="openSubModal()" class="mt-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition">
+          ＋ เพิ่มรายการใหม่
         </button>
       </div>
     </section>
@@ -171,7 +182,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อบริการ *</label>
-            <input id="subName" type="text" required placeholder="เช่น Netflix, Spotify" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+            <input id="subName" type="text" required placeholder="เช่น Netflix, แพ็กเกจ 30 วัน" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
           </div>
 
           <div>
@@ -203,18 +214,19 @@
           </div>
 
           <div class="col-span-2 sm:col-span-1">
-            <label class="block text-xs font-medium text-slate-300 mb-1">รอบการตัดบิล</label>
-            <select id="subCycle" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <label class="block text-xs font-medium text-slate-300 mb-1">รูปแบบ / รอบบิล</label>
+            <select id="subCycle" onchange="handleCycleChange()" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
               <option value="monthly">รายเดือน (Monthly)</option>
               <option value="yearly">รายปี (Yearly)</option>
               <option value="weekly">รายสัปดาห์ (Weekly)</option>
+              <option value="once">⚡ ครั้งเดียว (ไม่ต่ออายุ)</option>
             </select>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">วันที่ตัดบิลครั้งถัดไป *</label>
+            <label id="dateLabel" class="block text-xs font-medium text-slate-300 mb-1">วันที่ตัดบิล / วันหมดอายุ *</label>
             <input id="subNextDate" type="date" required class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
           </div>
 
@@ -229,21 +241,26 @@
             <label class="block text-xs font-medium text-slate-300 mb-1">สถานะ</label>
             <select id="subStatus" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
               <option value="active">✅ กำลังใช้งาน (Active)</option>
-              <option value="paused">⏸️ พักชั่วคราว/ยกเลิก (Paused)</option>
+              <option value="paused">⏸️ ระงับ/ยกเลิก (Paused)</option>
+              <option value="expired">⌛ หมดอายุแล้ว (Expired)</option>
             </select>
           </div>
 
           <div class="flex items-center pt-5">
             <label class="inline-flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-slate-300">
-              <input id="subAutoRenew" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-600" />
-              <span>เลื่อนรอบบิลถัดไปอัตโนมัติเมื่อถึงกำหนด</span>
+              <input id="subAutoRenew" type="checkbox" checked onchange="handleAutoRenewChange()" class="w-4 h-4 rounded accent-indigo-600" />
+              <span id="autoRenewLabel">ต่ออายุอัตโนมัติเมื่อถึงกำหนด</span>
             </label>
           </div>
         </div>
 
+        <div id="oneTimeHint" class="hidden text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3.5 py-2.5">
+          ⚡ <b>แบบครั้งเดียว / ไม่ต่ออายุ:</b> เมื่อเลยวันหมดอายุ ระบบจะเอาออกจากหน้าหลักและย้ายไปเก็บไว้ในปุ่ม <b>"⌛ ที่หมดอายุแล้ว"</b> โดยอัตโนมัติ
+        </div>
+
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">บันทึกเพิ่มเติม (เช่น ตัดบัตรใบไหน / แชร์กับใคร)</label>
-          <input id="subNotes" type="text" placeholder="เช่น ตัดบัตร KBank / แชร์ 4 คน" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+          <input id="subNotes" type="text" placeholder="เช่น TrueMoney Wallet / แชร์ 4 คน" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
@@ -272,7 +289,6 @@
     let subscriptions = [];
     let currentFilter = "all";
 
-    // ค่าอัตราแลกเปลี่ยนโดยประมาณสำหรับคำนวณยอดรวมเป็นเงินบาท
     const FX_TO_THB = {
       THB: 1,
       USD: 34.5,
@@ -310,12 +326,27 @@
       return Math.round((target - today) / (1000 * 60 * 60 * 24));
     }
 
+    function isSubExpired(sub) {
+      if (sub.status === "expired") return true;
+      const daysLeft = getDaysLeft(sub.next_billing_date);
+      const isOneTime = sub.billing_cycle === "once" || Number(sub.auto_renew) === 0;
+      if (sub.status === "active" && isOneTime && daysLeft < 0) {
+        return true;
+      }
+      return false;
+    }
+
     async function loadSubscriptions() {
       try {
         const res = await fetch(`${API_BASE_URL}/api/subscriptions`);
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "ดึงข้อมูลไม่สำเร็จ");
-        subscriptions = json.data || [];
+        subscriptions = (json.data || []).map((sub) => {
+          if (isSubExpired(sub)) {
+            return { ...sub, status: "expired" };
+          }
+          return sub;
+        });
         renderSubscriptions();
       } catch (err) {
         showToast(`ดึงข้อมูลไม่สำเร็จ: ${err.message}`, true);
@@ -324,14 +355,15 @@
 
     function setFilter(filter) {
       currentFilter = filter;
-      ["all", "due_soon", "active", "paused"].forEach((key) => {
+      ["all", "due_soon", "active", "paused", "expired"].forEach((key) => {
         const btn = document.getElementById(`filter-${key}`);
+        if (!btn) return;
         if (key === filter) {
           btn.className =
-            "px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-indigo-600 text-white transition";
+            "px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-indigo-600 text-white transition whitespace-nowrap flex items-center gap-1.5";
         } else {
           btn.className =
-            "px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+            "px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap flex items-center gap-1.5";
         }
       });
       renderSubscriptions();
@@ -341,8 +373,16 @@
       let monthlyTHB = 0;
       let activeCount = 0;
       let dueSoonCount = 0;
+      let expiredCount = 0;
+      let nonExpiredTotal = 0;
 
       subscriptions.forEach((sub) => {
+        if (sub.status === "expired") {
+          expiredCount++;
+          return;
+        }
+        nonExpiredTotal++;
+
         if (sub.status === "active") {
           activeCount++;
           const rate = FX_TO_THB[sub.currency] || 1;
@@ -353,6 +393,7 @@
           } else if (sub.billing_cycle === "weekly") {
             monthlyTHB += (priceTHB * 52) / 12;
           } else {
+            // monthly or once (active during current period)
             monthlyTHB += priceTHB;
           }
 
@@ -370,8 +411,26 @@
       document.getElementById("statYearly").textContent =
         "฿" + Math.round(yearlyTHB).toLocaleString();
       document.getElementById("statActiveCount").textContent = `${activeCount} รายการ`;
-      document.getElementById("statTotalCount").textContent = `จากทั้งหมด ${subscriptions.length} รายการ`;
+      document.getElementById("statTotalCount").textContent =
+        expiredCount > 0
+          ? `ใช้งาน ${activeCount} | หมดอายุแล้ว ${expiredCount} รายการ`
+          : `จากทั้งหมด ${nonExpiredTotal} รายการ`;
       document.getElementById("statDueSoon").textContent = `${dueSoonCount} รายการ`;
+
+      const badge = document.getElementById("expiredCountBadge");
+      if (expiredCount > 0) {
+        badge.textContent = expiredCount;
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+
+      const clearBtn = document.getElementById("clearExpiredBtn");
+      if (currentFilter === "expired" && expiredCount > 0) {
+        clearBtn.classList.remove("hidden");
+      } else {
+        clearBtn.classList.add("hidden");
+      }
     }
 
     function getCategoryIcon(cat) {
@@ -395,11 +454,14 @@
 
       const filtered = subscriptions
         .filter((sub) => {
+          // หน้า "ทั้งหมด" จะแสดงเฉพาะรายการที่ยังไม่หมดอายุ (ส่วนที่หมดอายุจะถูกย้ายไปแท็บ "ที่หมดอายุแล้ว" อัตโนมัติ)
+          if (currentFilter === "all" && sub.status === "expired") return false;
           if (currentFilter === "active" && sub.status !== "active") return false;
-          if (currentFilter === "paused" && sub.status === "active") return false;
+          if (currentFilter === "paused" && sub.status !== "paused") return false;
+          if (currentFilter === "expired" && sub.status !== "expired") return false;
           if (currentFilter === "due_soon") {
             const d = getDaysLeft(sub.next_billing_date);
-            if (sub.status !== "active" || d > 7) return false;
+            if (sub.status !== "active" || d < 0 || d > 7) return false;
           }
           if (query) {
             const hay = `${sub.name} ${sub.category} ${sub.notes || ""}`.toLowerCase();
@@ -411,10 +473,27 @@
 
       const grid = document.getElementById("subGrid");
       const empty = document.getElementById("emptyState");
+      const emptyIcon = document.getElementById("emptyIcon");
+      const emptyTitle = document.getElementById("emptyTitle");
+      const emptyDesc = document.getElementById("emptyDesc");
+      const emptyActionBtn = document.getElementById("emptyActionBtn");
 
       if (filtered.length === 0) {
         grid.innerHTML = "";
         empty.classList.remove("hidden");
+        if (currentFilter === "expired") {
+          emptyIcon.textContent = "✨";
+          emptyTitle.textContent = "ไม่มีรายการที่หมดอายุ";
+          emptyDesc.textContent =
+            "รายการแบบครั้งเดียว (ไม่ต่ออายุ) เมื่อครบกำหนดแล้วจะถูกย้ายมาเก็บไว้ที่นี่โดยอัตโนมัติ";
+          emptyActionBtn.classList.add("hidden");
+        } else {
+          emptyIcon.textContent = "📭";
+          emptyTitle.textContent = "ยังไม่มีรายการในหมวดนี้";
+          emptyDesc.textContent =
+            "เริ่มต้นเพิ่มรายการค่าบริการรายเดือน รายปี หรือแบบครั้งเดียว (ไม่ต่ออายุ) เพื่อติดตามค่าใช้จ่ายและรับแจ้งเตือนผ่าน Telegram";
+          emptyActionBtn.classList.remove("hidden");
+        }
         return;
       }
 
@@ -424,14 +503,17 @@
         .map((sub) => {
           const daysLeft = getDaysLeft(sub.next_billing_date);
           const remindDays = Number(sub.remind_days_before ?? 3);
+          const isOneTime = sub.billing_cycle === "once" || Number(sub.auto_renew) === 0;
 
           let dueBadge = "";
-          if (sub.status !== "active") {
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 text-slate-400">⏸️ พักการใช้งาน</span>`;
+          if (sub.status === "expired") {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">⌛ หมดอายุแล้ว</span>`;
+          } else if (sub.status === "paused") {
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 text-slate-400">⏸️ ระงับชั่วคราว</span>`;
           } else if (daysLeft < 0) {
             dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">⚠️ เลยกำหนด ${Math.abs(daysLeft)} วัน</span>`;
           } else if (daysLeft === 0) {
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold animate-pulse">🚨 ตัดบิลวันนี้!</span>`;
+            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold animate-pulse">${isOneTime ? "🚨 หมดอายุวันนี้!" : "🚨 ตัดบิลวันนี้!"}</span>`;
           } else if (daysLeft <= remindDays) {
             dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">🔔 อีก ${daysLeft} วัน</span>`;
           } else {
@@ -439,16 +521,35 @@
           }
 
           const cycleText =
-            sub.billing_cycle === "yearly"
+            sub.billing_cycle === "once"
+              ? "/ ครั้งเดียว (ไม่ต่ออายุ)"
+              : sub.billing_cycle === "yearly"
               ? "/ ปี"
               : sub.billing_cycle === "weekly"
               ? "/ สัปดาห์"
               : "/ เดือน";
 
           const currencySymbol = sub.currency === "USD" ? "$" : "฿";
+          const dateLabelText =
+            sub.status === "expired"
+              ? "หมดอายุเมื่อ"
+              : isOneTime
+              ? "วันหมดอายุ (ไม่ต่ออายุ)"
+              : "ตัดบิลถัดไป";
+
+          const renewButtonHtml =
+            sub.status === "expired"
+              ? `<button onclick="renewNextCycle(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition" title="เปิดใช้งาน / ต่ออายุอีก 1 รอบ">
+                  🔄 ต่ออายุใหม่
+                </button>`
+              : !isOneTime
+              ? `<button onclick="renewNextCycle(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/25 transition" title="จ่ายแล้ว / เลื่อนไปรอบบิลถัดไป">
+                  ⏭️ รอบถัดไป
+                </button>`
+              : "";
 
           return `
-            <div class="glass rounded-2xl p-5 flex flex-col justify-between gap-4 hover:border-indigo-500/40 transition">
+            <div class="glass rounded-2xl p-5 flex flex-col justify-between gap-4 hover:border-indigo-500/40 transition ${sub.status === "expired" ? "opacity-80 border-rose-500/20" : ""}">
               <div class="space-y-3">
                 <div class="flex items-start justify-between gap-2">
                   <div class="flex items-center gap-3">
@@ -457,7 +558,14 @@
                     </div>
                     <div>
                       <h3 class="font-bold text-white text-base leading-snug">${escapeHtml(sub.name)}</h3>
-                      <span class="text-xs text-slate-400">${escapeHtml(sub.category)}</span>
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-xs text-slate-400">${escapeHtml(sub.category)}</span>
+                        ${
+                          isOneTime
+                            ? `<span class="text-[11px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">⚡ ไม่ต่ออายุ</span>`
+                            : ""
+                        }
+                      </div>
                     </div>
                   </div>
                   ${dueBadge}
@@ -469,7 +577,7 @@
                     <span class="text-xs text-slate-400">${cycleText}</span>
                   </div>
                   <div class="text-right">
-                    <div class="text-xs text-slate-400">ตัดบิลถัดไป</div>
+                    <div class="text-xs text-slate-400">${dateLabelText}</div>
                     <div class="text-xs font-semibold text-slate-200">${sub.next_billing_date}</div>
                   </div>
                 </div>
@@ -484,9 +592,7 @@
               <div class="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
                 <span class="text-slate-400">🔔 เตือนล่วงหน้า ${remindDays} วัน</span>
                 <div class="flex items-center gap-1.5">
-                  <button onclick="renewNextCycle(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/25 transition" title="จ่ายแล้ว / เลื่อนไปรอบบิลถัดไป">
-                    ⏭️ รอบถัดไป
-                  </button>
+                  ${renewButtonHtml}
                   <button onclick="openSubModal(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
                     แก้ไข
                   </button>
@@ -509,11 +615,42 @@
         .replace(/"/g, "&quot;");
     }
 
+    function handleCycleChange() {
+      const cycle = document.getElementById("subCycle").value;
+      const autoRenewCheckbox = document.getElementById("subAutoRenew");
+      if (cycle === "once") {
+        autoRenewCheckbox.checked = false;
+      } else {
+        autoRenewCheckbox.checked = true;
+      }
+      updateOneTimeUI();
+    }
+
+    function handleAutoRenewChange() {
+      updateOneTimeUI();
+    }
+
+    function updateOneTimeUI() {
+      const cycle = document.getElementById("subCycle").value;
+      const autoRenew = document.getElementById("subAutoRenew").checked;
+      const hint = document.getElementById("oneTimeHint");
+      const dateLabel = document.getElementById("dateLabel");
+
+      if (cycle === "once" || !autoRenew) {
+        hint.classList.remove("hidden");
+        dateLabel.textContent = "วันหมดอายุ (ครบกำหนดแล้วเอาออกอัตโนมัติ) *";
+      } else {
+        hint.classList.add("hidden");
+        dateLabel.textContent = "วันที่ตัดบิลครั้งถัดไป *";
+      }
+    }
+
     function fillPreset(name, category, price, cycle) {
       document.getElementById("subName").value = name;
       document.getElementById("subCategory").value = category;
       document.getElementById("subPrice").value = price;
       document.getElementById("subCycle").value = cycle;
+      handleCycleChange();
     }
 
     function openSubModal(id = null) {
@@ -534,7 +671,8 @@
         document.getElementById("subNextDate").value = sub.next_billing_date;
         document.getElementById("subRemindDays").value = sub.remind_days_before ?? 3;
         document.getElementById("subStatus").value = sub.status || "active";
-        document.getElementById("subAutoRenew").checked = Boolean(sub.auto_renew);
+        document.getElementById("subAutoRenew").checked =
+          sub.billing_cycle === "once" ? false : Boolean(sub.auto_renew);
         document.getElementById("subNotes").value = sub.notes || "";
       } else {
         title.textContent = "เพิ่มรายการ Subscription ใหม่";
@@ -544,6 +682,7 @@
         document.getElementById("subAutoRenew").checked = true;
       }
 
+      updateOneTimeUI();
       modal.classList.remove("hidden");
       modal.classList.add("flex");
     }
@@ -557,16 +696,24 @@
     async function saveSubscription(e) {
       e.preventDefault();
       const id = document.getElementById("subId").value;
+      const cycle = document.getElementById("subCycle").value;
+      const autoRenew =
+        cycle === "once"
+          ? 0
+          : document.getElementById("subAutoRenew").checked
+          ? 1
+          : 0;
+
       const payload = {
         name: document.getElementById("subName").value.trim(),
         category: document.getElementById("subCategory").value,
         price: Number(document.getElementById("subPrice").value || 0),
         currency: document.getElementById("subCurrency").value,
-        billing_cycle: document.getElementById("subCycle").value,
+        billing_cycle: cycle,
         next_billing_date: document.getElementById("subNextDate").value,
         remind_days_before: Number(document.getElementById("subRemindDays").value || 3),
         status: document.getElementById("subStatus").value,
-        auto_renew: document.getElementById("subAutoRenew").checked ? 1 : 0,
+        auto_renew: autoRenew,
         notes: document.getElementById("subNotes").value.trim(),
       };
 
@@ -602,7 +749,7 @@
         });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "เลื่อนรอบบิลไม่สำเร็จ");
-        showToast(`เลื่อนรอบบิลเป็น ${json.next_billing_date} เรียบร้อย!`);
+        showToast(`ต่ออายุไปเป็น ${json.next_billing_date} เรียบร้อย!`);
         await loadSubscriptions();
       } catch (err) {
         showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
@@ -624,6 +771,22 @@
         await loadSubscriptions();
       } catch (err) {
         showToast(`ลบไม่สำเร็จ: ${err.message}`, true);
+      }
+    }
+
+    async function clearAllExpired() {
+      if (!confirm("ต้องการลบรายการที่หมดอายุทั้งหมดออกจากระบบถาวรใช่หรือไม่?")) return;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/subscriptions/expired`, {
+          method: "DELETE",
+        });
+        const json = await res.json();
+        if (!res.ok || !json.ok) throw new Error(json.error || "ลบไม่สำเร็จ");
+        showToast("🗑️ ล้างรายการที่หมดอายุทั้งหมดเรียบร้อยแล้ว!");
+        await loadSubscriptions();
+      } catch (err) {
+        showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
       }
     }
 
