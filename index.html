@@ -2,9 +2,14 @@
 <html lang="th" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Subscription Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b19" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SubWeb" />
+  <title>SubWeb — ระบบจัดการ Subscription & แจ้งเตือนอัจฉริยะ</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -19,261 +24,342 @@
     }
   </script>
   <style>
+    :root {
+      --bg-deep: #060914;
+      --card-bg: rgba(15, 23, 42, 0.62);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
       font-family: 'Prompt', sans-serif;
-      background-color: #050816;
+      background-color: var(--bg-deep);
+      color: #f1f5f9;
       overflow-x: hidden;
+      padding-bottom: 96px; /* Space for mobile dock */
     }
 
-    /* Animated Aurora Background Orbs */
-    .bg-orb {
+    @media (min-width: 768px) {
+      body { padding-bottom: 36px; }
+    }
+
+    /* Hide scrollbar for clean app feel */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Soft Comfort Mesh Aurora Background */
+    .aurora-wrapper {
       position: fixed;
-      border-radius: 9999px;
-      filter: blur(95px);
-      opacity: 0.35;
-      pointer-events: none;
-      z-index: 0;
-      animation: floatOrb 18s ease-in-out infinite alternate;
-    }
-    .bg-orb-1 {
-      width: 420px;
-      height: 420px;
-      background: radial-gradient(circle, #6366f1, #3b82f6);
-      top: -100px;
-      left: -100px;
-    }
-    .bg-orb-2 {
-      width: 380px;
-      height: 380px;
-      background: radial-gradient(circle, #06b6d4, #8b5cf6);
-      bottom: -80px;
-      right: -80px;
-      animation-delay: -6s;
-      animation-duration: 22s;
-    }
-    .bg-orb-3 {
-      width: 300px;
-      height: 300px;
-      background: radial-gradient(circle, #ec4899, #6366f1);
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.18;
-      animation-delay: -11s;
-      animation-duration: 25s;
-    }
-
-    @keyframes floatOrb {
-      0% { transform: translate(0px, 0px) scale(1); }
-      50% { transform: translate(45px, -35px) scale(1.12); }
-      100% { transform: translate(-30px, 40px) scale(0.94); }
-    }
-
-    /* Glassmorphism & Hover Lift */
-    .glass {
-      background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
-    }
-
-    .stat-card {
-      position: relative;
-      overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .stat-card::before {
-      content: "";
-      position: absolute;
       inset: 0;
-      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.05), transparent);
-      transform: translateX(-100%);
-      transition: transform 0.7s ease;
-    }
-    .stat-card:hover::before {
-      transform: translateX(100%);
-    }
-    .stat-card:hover {
-      transform: translateY(-5px);
-      border-color: rgba(99, 102, 241, 0.45);
-      box-shadow: 0 15px 35px -10px rgba(99, 102, 241, 0.25);
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.14), transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.14), transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(168, 85, 247, 0.12), transparent 50%);
     }
 
-    /* Subscription Card Animations */
+    .aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      animation: auroraFloat 16s ease-in-out infinite alternate;
+    }
+    .blob-1 {
+      width: 360px; height: 360px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      top: -80px; left: -60px;
+    }
+    .blob-2 {
+      width: 340px; height: 340px;
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+      bottom: -80px; right: -50px;
+      animation-delay: -5s;
+      animation-duration: 20s;
+    }
+    .blob-3 {
+      width: 260px; height: 260px;
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      top: 42%; left: 45%;
+      opacity: 0.2;
+      animation-delay: -9s;
+      animation-duration: 24s;
+    }
+
+    @keyframes auroraFloat {
+      0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      50% { transform: translate(35px, -25px) scale(1.1) rotate(12deg); }
+      100% { transform: translate(-25px, 30px) scale(0.95) rotate(-10deg); }
+    }
+
+    /* Subtle animated grid overlay */
+    .bg-grid-pattern {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    }
+
+    /* Ultra-smooth Glass Card */
+    .app-glass {
+      background: rgba(17, 25, 44, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 35px -10px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Bouncy Spring Interaction */
+    .spring-tap {
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+    }
+    .spring-tap:active {
+      transform: scale(0.93) !important;
+    }
+
+    /* Subscription Card Entry & Hover */
     .sub-card {
       position: relative;
       overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      animation: cardEnter 0.55s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      animation: springSlideUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
     }
     .sub-card:hover {
-      transform: translateY(-6px) scale(1.01);
-      border-color: rgba(99, 102, 241, 0.5);
-      box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
+      transform: translateY(-6px) scale(1.012);
+      border-color: var(--brand-color, rgba(99, 102, 241, 0.5));
+      box-shadow: 0 20px 45px -15px var(--brand-glow, rgba(99, 102, 241, 0.35));
     }
 
-    @keyframes cardEnter {
-      from {
-        opacity: 0;
-        transform: translateY(24px) scale(0.96);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+    @keyframes springSlideUp {
+      0% { opacity: 0; transform: translateY(30px) scale(0.92); }
+      70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Animated Shimmer on Progress Bar */
-    .progress-shimmer {
+    /* Brand Logo Container Animation */
+    .brand-logo-box {
+      position: relative;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sub-card:hover .brand-logo-box {
+      transform: scale(1.12) rotate(-4deg);
+    }
+
+    /* Shimmer Progress Bar */
+    .shimmer-bar {
       position: relative;
       overflow: hidden;
     }
-    .progress-shimmer::after {
+    .shimmer-bar::after {
       content: "";
       position: absolute;
-      top: 0; left: 0; bottom: 0; right: 0;
-      background: linear-gradient(
-        90deg,
-        rgba(255,255,255,0) 0%,
-        rgba(255,255,255,0.35) 50%,
-        rgba(255,255,255,0) 100%
-      );
-      animation: shimmerMove 2.2s infinite;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmerSlide 2s infinite;
     }
-    @keyframes shimmerMove {
+    @keyframes shimmerSlide {
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
     }
 
-    /* Animated Gradient Button */
-    .btn-glow {
-      background: linear-gradient(135deg, #6366f1 0%, #3b82f6 50%, #06b6d4 100%);
-      background-size: 200% 200%;
-      animation: gradientShift 4s ease infinite;
-      transition: all 0.3s ease;
+    /* Preset Brand Pill */
+    .brand-pill {
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .btn-glow:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.6);
+    .brand-pill:hover {
+      transform: translateY(-3px) scale(1.05);
     }
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    .brand-pill:active {
+      transform: scale(0.92);
     }
 
-    /* Floating Icon Animation */
-    .float-icon {
-      animation: gentleFloat 3.5s ease-in-out infinite;
+    /* Bottom Sheet Modal Animation */
+    .sheet-enter {
+      animation: sheetPop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    @keyframes gentleFloat {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-4px); }
+    @keyframes sheetPop {
+      0% { opacity: 0; transform: translateY(45px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Modal pop animation */
-    .modal-pop {
-      animation: modalZoom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Ripple Wave Effect on Click */
+    .ripple-circle {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      border: 2px solid rgba(99, 102, 241, 0.55);
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
+      transform: translate(-50%, -50%) scale(0);
+      animation: rippleOut 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
-    @keyframes modalZoom {
-      from { opacity: 0; transform: scale(0.92) translateY(12px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
+    @keyframes rippleOut {
+      to {
+        transform: translate(-50%, -50%) scale(2.6);
+        opacity: 0;
+      }
+    }
+
+    /* Circular SVG Ring */
+    .ring-circle {
+      transition: stroke-dashoffset 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
     }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen selection:bg-indigo-500 selection:text-white relative">
+<body class="bg-grid-pattern selection:bg-indigo-500 selection:text-white">
 
-  <!-- Animated Background Orbs -->
-  <div class="bg-orb bg-orb-1"></div>
-  <div class="bg-orb bg-orb-2"></div>
-  <div class="bg-orb bg-orb-3"></div>
+  <!-- Soft Moving Aurora Background -->
+  <div class="aurora-wrapper">
+    <div class="aurora-blob blob-1"></div>
+    <div class="aurora-blob blob-2"></div>
+    <div class="aurora-blob blob-3"></div>
+  </div>
 
-  <!-- Top Navbar -->
-  <header class="sticky top-0 z-30 glass border-b border-slate-800/80">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3.5">
-        <div class="w-11 h-11 rounded-2xl btn-glow flex items-center justify-center shadow-lg shadow-indigo-500/30 text-xl float-icon">
-          💳
+  <!-- Top App Header -->
+  <header class="sticky top-0 z-30 app-glass border-b border-white/5">
+    <div class="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div onclick="playTone('pop')" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-500 to-cyan-400 p-0.5 shadow-lg shadow-indigo-500/30 spring-tap cursor-pointer">
+          <div class="w-full h-full bg-slate-950/40 backdrop-blur-sm rounded-[14px] flex items-center justify-center text-xl">
+            💎
+          </div>
         </div>
         <div>
-          <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-cyan-300 bg-clip-text text-transparent">
-            Subscription Tracker
-          </h1>
-          <p class="text-xs text-slate-400 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <span>ระบบติดตามค่าบริการ & แจ้งเตือนนับถอยหลัง 4 รอบ/วัน</span>
-          </p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-cyan-300 bg-clip-text text-transparent">
+              SubWeb
+            </h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              Online
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">จัดการแอปรายเดือน & เตือน Telegram 4 รอบ/วัน</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button onclick="openSubModal()" class="btn-glow px-4 sm:px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-semibold shadow-lg flex items-center gap-1.5">
-          <span class="text-base leading-none">＋</span> เพิ่มรายการใหม่
+        <!-- Sound Toggle Button -->
+        <button
+          id="soundToggleBtn"
+          onclick="toggleSound()"
+          class="spring-tap w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 flex items-center justify-center text-base text-slate-200"
+          title="เปิด/ปิดเสียงคลิก"
+        >
+          🔊
+        </button>
+
+        <!-- Refresh Button -->
+        <button
+          onclick="playTone('click'); loadSubscriptions(true)"
+          id="refreshBtn"
+          class="spring-tap w-10 h-10 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 flex items-center justify-center text-base text-slate-200"
+          title="ซิงค์ข้อมูลล่าสุด"
+        >
+          🔄
+        </button>
+
+        <!-- Desktop Add Button -->
+        <button
+          onclick="openSubModal()"
+          class="hidden sm:flex spring-tap px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 hover:opacity-95 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-500/30 items-center gap-1.5"
+        >
+          <span class="text-base leading-none">＋</span> เพิ่มแอปใหม่
         </button>
       </div>
     </div>
   </header>
 
-  <main class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+  <main class="relative z-10 max-w-5xl mx-auto px-4 pt-5 space-y-6">
 
-    <!-- Summary Cards -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="glass stat-card rounded-2xl p-5 border-t-2 border-t-indigo-500/60">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-          <span>ค่าใช้จ่ายเฉลี่ย / เดือน</span>
-          <span class="text-xl float-icon">📅</span>
+    <!-- Hero Wallet & Overview Card -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <!-- Monthly Spend -->
+      <div onclick="playTone('click')" class="col-span-2 sm:col-span-1 app-glass rounded-3xl p-4 sm:p-5 border-t border-indigo-400/30 spring-tap cursor-pointer relative overflow-hidden group">
+        <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-indigo-500/15 blur-xl group-hover:bg-indigo-500/25 transition"></div>
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>ยอดรายเดือน</span>
+          <span class="w-7 h-7 rounded-lg bg-indigo-500/15 text-indigo-300 flex items-center justify-center">💳</span>
         </div>
         <div id="statMonthly" class="mt-2 text-2xl sm:text-3xl font-bold text-white tracking-tight">฿0</div>
-        <p class="mt-1 text-xs text-slate-400">คำนวณรวมแพ็กเกจที่เปิดใช้งาน</p>
+        <div class="mt-1 text-[11px] text-slate-400 flex items-center gap-1">
+          <span>รวมแอปที่เปิดใช้งาน</span>
+        </div>
       </div>
 
-      <div class="glass stat-card rounded-2xl p-5 border-t-2 border-t-cyan-400/60">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-          <span>ประมาณการรวม / ปี</span>
-          <span class="text-xl float-icon" style="animation-delay: 0.4s">📊</span>
+      <!-- Yearly Estimate -->
+      <div onclick="playTone('click')" class="app-glass rounded-3xl p-4 sm:p-5 border-t border-cyan-400/30 spring-tap cursor-pointer relative overflow-hidden group">
+        <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-cyan-500/15 blur-xl group-hover:bg-cyan-500/25 transition"></div>
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>รวมต่อปี</span>
+          <span class="w-7 h-7 rounded-lg bg-cyan-500/15 text-cyan-300 flex items-center justify-center">📅</span>
         </div>
-        <div id="statYearly" class="mt-2 text-2xl sm:text-3xl font-bold text-cyan-400 tracking-tight">฿0</div>
-        <p class="mt-1 text-xs text-slate-400">ยอดรวมตลอด 12 เดือน</p>
+        <div id="statYearly" class="mt-2 text-xl sm:text-2xl font-bold text-cyan-300 tracking-tight">฿0</div>
+        <div class="mt-1 text-[11px] text-slate-400">ประมาณการ 12 เดือน</div>
       </div>
 
-      <div class="glass stat-card rounded-2xl p-5 border-t-2 border-t-emerald-400/60">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-          <span>บริการที่ใช้งานอยู่ (Active)</span>
-          <span class="text-xl float-icon" style="animation-delay: 0.8s">✅</span>
+      <!-- Active Apps -->
+      <div onclick="setFilter('active')" class="app-glass rounded-3xl p-4 sm:p-5 border-t border-emerald-400/30 spring-tap cursor-pointer relative overflow-hidden group">
+        <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-emerald-500/15 blur-xl group-hover:bg-emerald-500/25 transition"></div>
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>กำลังใช้งาน</span>
+          <span class="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-300 flex items-center justify-center">⚡</span>
         </div>
-        <div id="statActiveCount" class="mt-2 text-2xl sm:text-3xl font-bold text-emerald-400 tracking-tight">0 รายการ</div>
-        <p id="statTotalCount" class="mt-1 text-xs text-slate-400">จากทั้งหมด 0 รายการ</p>
+        <div id="statActiveCount" class="mt-2 text-xl sm:text-2xl font-bold text-emerald-400 tracking-tight">0 แอป</div>
+        <div id="statTotalCount" class="mt-1 text-[11px] text-slate-400">แตะเพื่อกรองดู</div>
       </div>
 
-      <div class="glass stat-card rounded-2xl p-5 border-t-2 border-t-amber-400/60">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-          <span>ใกล้ครบกำหนด (ภายใน 7 วัน)</span>
-          <span class="text-xl float-icon" style="animation-delay: 1.2s">🔔</span>
+      <!-- Due Soon -->
+      <div onclick="setFilter('due_soon')" class="col-span-2 sm:col-span-1 app-glass rounded-3xl p-4 sm:p-5 border-t border-amber-400/30 spring-tap cursor-pointer relative overflow-hidden group">
+        <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-amber-500/15 blur-xl group-hover:bg-amber-500/25 transition"></div>
+        <div class="flex items-center justify-between text-slate-400 text-xs">
+          <span>ใกล้ครบกำหนด (7 วัน)</span>
+          <span class="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-300 flex items-center justify-center animate-bounce">🔔</span>
         </div>
-        <div id="statDueSoon" class="mt-2 text-2xl sm:text-3xl font-bold text-amber-400 tracking-tight">0 รายการ</div>
-        <p class="mt-1 text-xs text-slate-400">เตือนเช้า • เที่ยง • เย็น • กลางคืน</p>
+        <div id="statDueSoon" class="mt-2 text-xl sm:text-2xl font-bold text-amber-300 tracking-tight">0 แอป</div>
+        <div class="mt-1 text-[11px] text-slate-400">เตือนเช้า•เที่ยง•เย็น•คืน</div>
       </div>
     </section>
 
-    <!-- Filter & Search Bar -->
+    <!-- Brand Quick-Add Dock (Horizontal Scrollable App Dock with Real Logos) -->
+    <section class="app-glass rounded-3xl p-4 border border-white/5">
+      <div class="flex items-center justify-between mb-3 px-1">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">✨</span>
+          <h2 class="text-xs sm:text-sm font-semibold text-slate-200">แตะโลโก้แอปเพื่อเพิ่มด่วน</h2>
+        </div>
+        <span class="text-[11px] text-slate-400">เลื่อนซ้าย-ขวาได้ 👉</span>
+      </div>
+      <div id="quickBrandDock" class="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1 px-0.5">
+        <!-- Populated by JS with Real Brand Logos -->
+      </div>
+    </section>
+
+    <!-- Filter Pills & Search -->
     <section class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-      <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-        <button onclick="setFilter('all')" id="filter-all" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium btn-glow text-white transition whitespace-nowrap flex items-center gap-1.5">
-          ทั้งหมด
+      <!-- Desktop / Tablet Filter Pills -->
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <button onclick="setFilter('all')" id="filter-all" class="spring-tap px-4 py-2 rounded-2xl text-xs font-semibold bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 whitespace-nowrap flex items-center gap-1.5">
+          <span>🏠</span> ทั้งหมด
         </button>
-        <button onclick="setFilter('due_soon')" id="filter-due_soon" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700 transition whitespace-nowrap flex items-center gap-1.5">
-          🔔 ใกล้ครบกำหนด
+        <button onclick="setFilter('due_soon')" id="filter-due_soon" class="spring-tap px-4 py-2 rounded-2xl text-xs font-medium bg-slate-900/80 border border-white/10 text-slate-300 hover:bg-slate-800 whitespace-nowrap flex items-center gap-1.5">
+          <span>🔔</span> ใกล้หมดอายุ
         </button>
-        <button onclick="setFilter('active')" id="filter-active" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700 transition whitespace-nowrap flex items-center gap-1.5">
-          กำลังใช้งาน
+        <button onclick="setFilter('active')" id="filter-active" class="spring-tap px-4 py-2 rounded-2xl text-xs font-medium bg-slate-900/80 border border-white/10 text-slate-300 hover:bg-slate-800 whitespace-nowrap flex items-center gap-1.5">
+          <span>✅</span> กำลังใช้งาน
         </button>
-        <button onclick="setFilter('paused')" id="filter-paused" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700 transition whitespace-nowrap flex items-center gap-1.5">
-          ระงับ/ยกเลิก
+        <button onclick="setFilter('paused')" id="filter-paused" class="spring-tap px-4 py-2 rounded-2xl text-xs font-medium bg-slate-900/80 border border-white/10 text-slate-300 hover:bg-slate-800 whitespace-nowrap flex items-center gap-1.5">
+          <span>⏸️</span> ระงับไว้
         </button>
-        <button onclick="setFilter('expired')" id="filter-expired" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700 transition whitespace-nowrap flex items-center gap-1.5">
-          <span>⌛ ที่หมดอายุแล้ว</span>
-          <span id="expiredCountBadge" class="hidden px-1.5 py-0.2 rounded-full text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">0</span>
+        <button onclick="setFilter('expired')" id="filter-expired" class="spring-tap px-4 py-2 rounded-2xl text-xs font-medium bg-slate-900/80 border border-white/10 text-slate-300 hover:bg-slate-800 whitespace-nowrap flex items-center gap-1.5">
+          <span>⌛</span> ที่หมดอายุแล้ว
+          <span id="expiredCountBadge" class="hidden px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500/25 text-rose-300 border border-rose-500/40 animate-pulse">0</span>
         </button>
       </div>
 
@@ -281,84 +367,125 @@
         <button
           id="clearExpiredBtn"
           onclick="clearAllExpired()"
-          class="hidden px-3.5 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-medium transition whitespace-nowrap"
+          class="hidden spring-tap px-3.5 py-2 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-semibold whitespace-nowrap"
         >
-          🗑️ ล้างที่หมดอายุทั้งหมด
+          🗑️ ล้างที่หมดอายุ
         </button>
-        <div class="relative w-full sm:w-64">
+        <div class="relative flex-1 sm:w-60">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
           <input
             id="searchInput"
             type="text"
             oninput="renderSubscriptions()"
-            placeholder="ค้นหาชื่อบริการ, หมวดหมู่, บันทึก..."
-            class="w-full px-3.5 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+            placeholder="ค้นหาแอป, หมวดหมู่, บันทึก..."
+            class="w-full pl-9 pr-3.5 py-2 rounded-2xl bg-slate-900/85 border border-white/10 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
           />
         </div>
-        <button onclick="loadSubscriptions()" class="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-indigo-500/40 transition active:rotate-180 duration-300" title="รีเฟรชข้อมูล">
-          🔄
-        </button>
       </div>
     </section>
 
-    <!-- Subscription List Grid -->
+    <!-- Subscription Cards Grid -->
     <section>
-      <div id="subGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <!-- Cards rendered by JS -->
+      <div id="subGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered by JS -->
       </div>
 
       <!-- Empty State -->
-      <div id="emptyState" class="hidden glass rounded-2xl p-12 text-center space-y-3 modal-pop">
-        <div class="text-5xl float-icon" id="emptyIcon">📭</div>
-        <h3 class="text-lg font-semibold text-white" id="emptyTitle">ยังไม่มีรายการ Subscription</h3>
-        <p class="text-sm text-slate-400 max-w-md mx-auto" id="emptyDesc">
-          เริ่มต้นเพิ่มรายการค่าบริการรายเดือน รายปี หรือแบบครั้งเดียว (ไม่ต่ออายุ) เพื่อติดตามค่าใช้จ่ายและรับแจ้งเตือนนับถอยหลังผ่าน Telegram
+      <div id="emptyState" class="hidden app-glass rounded-3xl p-10 text-center space-y-3 sheet-enter">
+        <div class="text-5xl animate-bounce" id="emptyIcon">✨</div>
+        <h3 class="text-base sm:text-lg font-bold text-white" id="emptyTitle">ยังไม่มีรายการในหมวดนี้</h3>
+        <p class="text-xs sm:text-sm text-slate-400 max-w-md mx-auto" id="emptyDesc">
+          แตะโลโก้แอปด้านบน หรือกดปุ่ม ＋ เพื่อเพิ่มรายการและรับแจ้งเตือนนับถอยหลังผ่าน Telegram
         </p>
-        <button id="emptyActionBtn" onclick="openSubModal()" class="mt-2 btn-glow px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition">
-          ＋ เพิ่มรายการใหม่
+        <button id="emptyActionBtn" onclick="openSubModal()" class="mt-2 spring-tap px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-500/30">
+          ＋ เพิ่มรายการแรก
         </button>
       </div>
     </section>
+
   </main>
 
-  <!-- Modal: เพิ่ม / แก้ไข Subscription -->
-  <div id="subModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-md p-4">
-    <div class="modal-pop bg-slate-900/95 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h2 id="modalTitle" class="text-lg font-bold bg-gradient-to-r from-white to-indigo-300 bg-clip-text text-transparent">เพิ่มรายการ Subscription</h2>
-        <button onclick="closeSubModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-lg leading-none transition">&times;</button>
+  <!-- Mobile Bottom Navigation Bar (App-like Floating Dock) -->
+  <nav class="md:hidden fixed bottom-3 left-3 right-3 z-40 app-glass rounded-3xl px-3 py-2 border border-white/10 shadow-2xl flex items-center justify-around">
+    <button onclick="setFilter('all')" id="mnav-all" class="spring-tap flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl text-indigo-400">
+      <span class="text-lg leading-none">🏠</span>
+      <span class="text-[10px] font-medium">ทั้งหมด</span>
+    </button>
+
+    <button onclick="setFilter('due_soon')" id="mnav-due_soon" class="spring-tap flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl text-slate-400">
+      <span class="text-lg leading-none">🔔</span>
+      <span class="text-[10px] font-medium">ใกล้หมด</span>
+    </button>
+
+    <!-- Center Floating Add Button -->
+    <button onclick="openSubModal()" class="spring-tap -mt-7 w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-blue-500 to-cyan-400 text-white shadow-xl shadow-indigo-500/40 border-4 border-[#060914] flex items-center justify-center text-2xl font-bold">
+      ＋
+    </button>
+
+    <button onclick="setFilter('active')" id="mnav-active" class="spring-tap flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl text-slate-400">
+      <span class="text-lg leading-none">⚡</span>
+      <span class="text-[10px] font-medium">ใช้งานอยู่</span>
+    </button>
+
+    <button onclick="setFilter('expired')" id="mnav-expired" class="spring-tap relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl text-slate-400">
+      <span class="text-lg leading-none">⌛</span>
+      <span class="text-[10px] font-medium">หมดอายุ</span>
+      <span id="mobileExpiredDot" class="hidden absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+    </button>
+  </nav>
+
+  <!-- Modal / Mobile Bottom Sheet: เพิ่ม / แก้ไข Subscription -->
+  <div id="subModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/75 backdrop-blur-md p-0 sm:p-4">
+    <div class="sheet-enter bg-[#0d1428] border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto no-scrollbar">
+      <!-- Drag Handle on Mobile -->
+      <div class="w-12 h-1.5 bg-slate-700/80 rounded-full mx-auto sm:hidden"></div>
+
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-3">
+          <div id="modalBrandPreview" class="w-11 h-11 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden shadow-md">
+            <!-- Brand SVG preview -->
+          </div>
+          <div>
+            <h2 id="modalTitle" class="text-base sm:text-lg font-bold text-white">เพิ่มแอป / บริการใหม่</h2>
+            <p class="text-[11px] text-slate-400">เลือกโลโก้แอปด้านล่างหรือพิมพ์ชื่อเองได้เลย</p>
+          </div>
+        </div>
+        <button onclick="closeSubModal()" class="spring-tap w-9 h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-lg">&times;</button>
       </div>
 
       <form id="subForm" onsubmit="saveSubscription(event)" class="space-y-4">
         <input type="hidden" id="subId" />
 
-        <!-- Quick Presets -->
+        <!-- Real App Logo Selector Grid inside Modal -->
         <div>
-          <label class="block text-xs text-slate-400 mb-1.5">เลือกบริการยอดนิยมด่วน (คลิกเพื่อเติมอัตโนมัติ)</label>
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="fillPreset('Netflix', 'Entertainment', 419, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/40 text-xs text-slate-200 border border-slate-700 transition">🎬 Netflix</button>
-            <button type="button" onclick="fillPreset('YouTube Premium', 'Entertainment', 179, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/40 text-xs text-slate-200 border border-slate-700 transition">▶️ YouTube</button>
-            <button type="button" onclick="fillPreset('Spotify Premium', 'Entertainment', 139, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/40 text-xs text-slate-200 border border-slate-700 transition">🎵 Spotify</button>
-            <button type="button" onclick="fillPreset('ChatGPT Plus', 'AI & Tools', 690, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/40 text-xs text-slate-200 border border-slate-700 transition">🤖 ChatGPT</button>
-            <button type="button" onclick="fillPreset('iCloud+ 200GB', 'Cloud & Storage', 99, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/40 text-xs text-slate-200 border border-slate-700 transition">☁️ iCloud+</button>
-            <button type="button" onclick="fillPreset('Canva Pro', 'Work & Design', 229, 'monthly')" class="px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-indigo-600/30 hover:border-indigo-500/40 text-xs text-slate-200 border border-slate-700 transition">🎨 Canva</button>
+          <label class="block text-xs text-slate-400 mb-2">แตะเลือกแอปยอดนิยม (ดึงโลโก้จริงอัตโนมัติ)</label>
+          <div id="modalBrandSelector" class="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-40 overflow-y-auto pr-1">
+            <!-- Populated by JS -->
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อบริการ *</label>
-            <input id="subName" type="text" required placeholder="เช่น Netflix, แพ็กเกจ 30 วัน" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+            <label class="block text-xs font-medium text-slate-300 mb-1">ชื่อแอป / บริการ *</label>
+            <input
+              id="subName"
+              type="text"
+              required
+              oninput="updateModalBrandPreview()"
+              placeholder="เช่น YouTube, Netflix, DTAC, Gemini..."
+              class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
+            />
           </div>
 
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">หมวดหมู่</label>
-            <select id="subCategory" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
-              <option value="Entertainment">🎬 บันเทิง (Entertainment)</option>
+            <select id="subCategory" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+              <option value="Entertainment">🎬 หนัง & บันเทิง (Entertainment)</option>
               <option value="AI & Tools">🤖 AI & เครื่องมือ (AI & Tools)</option>
-              <option value="Cloud & Storage">☁️ คลาวด์ & เซิร์ฟเวอร์ (Cloud)</option>
-              <option value="Work & Design">💼 งาน & ออกแบบ (Work)</option>
+              <option value="Cloud & Storage">☁️ คลาวด์ & พื้นที่เก็บข้อมูล (Cloud)</option>
+              <option value="Work & Design">💼 งาน & ออกแบบ (Work & Design)</option>
+              <option value="Utilities">📱 มือถือ & อินเทอร์เน็ต (DTAC / TRUE)</option>
               <option value="Gaming">🎮 เกม (Gaming)</option>
-              <option value="Utilities">📱 อินเทอร์เน็ต & สาธารณูปโภค</option>
               <option value="General">📌 อื่นๆ (General)</option>
             </select>
           </div>
@@ -367,73 +494,81 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">ราคา *</label>
-            <input id="subPrice" type="number" step="0.01" min="0" required placeholder="0.00" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+            <input id="subPrice" type="number" step="0.01" min="0" required placeholder="0" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
           </div>
 
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">สกุลเงิน</label>
-            <select id="subCurrency" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+            <select id="subCurrency" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
               <option value="THB">THB (฿)</option>
               <option value="USD">USD ($)</option>
             </select>
           </div>
 
           <div class="col-span-2 sm:col-span-1">
-            <label class="block text-xs font-medium text-slate-300 mb-1">รูปแบบ / รอบบิล</label>
-            <select id="subCycle" onchange="handleCycleChange()" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
-              <option value="monthly">รายเดือน (Monthly)</option>
-              <option value="yearly">รายปี (Yearly)</option>
-              <option value="weekly">รายสัปดาห์ (Weekly)</option>
+            <label class="block text-xs font-medium text-slate-300 mb-1">รูปแบบการต่ออายุ</label>
+            <select id="subCycle" onchange="handleCycleChange()" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+              <option value="monthly">🔄 รายเดือน (Monthly)</option>
+              <option value="yearly">🔄 รายปี (Yearly)</option>
+              <option value="weekly">🔄 รายสัปดาห์ (Weekly)</option>
               <option value="once">⚡ ครั้งเดียว (ไม่ต่ออายุ)</option>
             </select>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label id="dateLabel" class="block text-xs font-medium text-slate-300 mb-1">วันที่ตัดบิล / วันหมดอายุ *</label>
-            <input id="subNextDate" type="date" required class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+            <label id="dateLabel" class="block text-xs font-medium text-slate-300 mb-1">วันตัดบิล / วันหมดอายุ *</label>
+            <input id="subNextDate" type="date" required class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+            <!-- Quick day adder buttons -->
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="text-[10px] text-slate-400">ตั้งด่วน:</span>
+              <button type="button" onclick="setQuickDays(7)" class="spring-tap px-2 py-0.5 rounded-lg bg-slate-800 text-[10px] text-slate-300 hover:bg-slate-700">+7 วัน</button>
+              <button type="button" onclick="setQuickDays(30)" class="spring-tap px-2 py-0.5 rounded-lg bg-slate-800 text-[10px] text-slate-300 hover:bg-slate-700">+30 วัน</button>
+              <button type="button" onclick="setQuickDays(365)" class="spring-tap px-2 py-0.5 rounded-lg bg-slate-800 text-[10px] text-slate-300 hover:bg-slate-700">+1 ปี</button>
+            </div>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">เริ่มแจ้งเตือนล่วงหน้า (วัน)</label>
-            <input id="subRemindDays" type="number" min="0" max="60" value="3" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+            <label class="block text-xs font-medium text-slate-300 mb-1">เริ่มเตือนล่วงหน้า (วัน)</label>
+            <input id="subRemindDays" type="number" min="0" max="60" value="3" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+            <p class="text-[10px] text-slate-400 mt-1.5">เตือนนับถอยหลัง เช้า•เที่ยง•เย็น•กลางคืน</p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">สถานะ</label>
-            <select id="subStatus" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+            <select id="subStatus" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
               <option value="active">✅ กำลังใช้งาน (Active)</option>
-              <option value="paused">⏸️ ระงับ/ยกเลิก (Paused)</option>
+              <option value="paused">⏸️ ระงับชั่วคราว (Paused)</option>
               <option value="expired">⌛ หมดอายุแล้ว (Expired)</option>
             </select>
           </div>
 
-          <div class="flex items-center pt-5">
-            <label class="inline-flex items-center gap-2 cursor-pointer text-xs sm:text-sm text-slate-300">
-              <input id="subAutoRenew" type="checkbox" checked onchange="handleAutoRenewChange()" class="w-4 h-4 rounded accent-indigo-600" />
-              <span id="autoRenewLabel">ต่ออายุอัตโนมัติเมื่อถึงกำหนด</span>
+          <div class="flex items-center pt-2 sm:pt-5">
+            <label class="inline-flex items-center gap-2.5 cursor-pointer text-xs text-slate-200 select-none">
+              <input id="subAutoRenew" type="checkbox" checked onchange="handleAutoRenewChange()" class="w-4 h-4 rounded accent-indigo-500" />
+              <span>ต่ออายุอัตโนมัติเมื่อถึงกำหนด</span>
             </label>
           </div>
         </div>
 
-        <div id="oneTimeHint" class="hidden text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3.5 py-2.5">
-          ⚡ <b>แบบครั้งเดียว / ไม่ต่ออายุ:</b> เมื่อเข้าสู่ช่วงเตือนล่วงหน้าจะนับถอยหลังทุก เช้า-เที่ยง-เย็น-กลางคืน และเมื่อหมดเวลาจะย้ายไปเก็บไว้ในปุ่ม <b>"⌛ ที่หมดอายุแล้ว"</b> อัตโนมัติ
+        <div id="oneTimeHint" class="hidden text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-2xl px-3.5 py-2.5">
+          ⚡ <b>แบบครั้งเดียว (ไม่ต่ออายุ):</b> เมื่อหมดเวลาจะถูกย้ายไปเก็บในปุ่ม <b>"⌛ ที่หมดอายุแล้ว"</b> อัตโนมัติ
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">บันทึกเพิ่มเติม (เช่น ตัดบัตรใบไหน / แชร์กับใคร)</label>
-          <input id="subNotes" type="text" placeholder="เช่น TrueMoney Wallet / แชร์ 4 คน" class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
+          <label class="block text-xs font-medium text-slate-300 mb-1">บันทึกเพิ่มเติม (เช่น ช่องทางชำระเงิน / แชร์กับใคร)</label>
+          <input id="subNotes" type="text" placeholder="เช่น TrueMoney Wallet / บัตร KBank / หาร 4 คน" class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/90 border border-white/10 text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-          <button type="button" onclick="closeSubModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+          <button type="button" onclick="closeSubModal()" class="spring-tap px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium">
             ยกเลิก
           </button>
-          <button type="submit" id="saveSubBtn" class="btn-glow px-5 py-2 rounded-xl text-white text-sm font-semibold shadow-lg transition">
-            บันทึกรายการ
+          <button type="submit" id="saveSubBtn" class="spring-tap px-6 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-500/30">
+            💾 บันทึกรายการ
           </button>
         </div>
       </form>
@@ -441,35 +576,379 @@
   </div>
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm shadow-xl flex items-center gap-2 modal-pop">
+  <div id="toast" class="fixed top-4 right-4 z-50 hidden px-4 py-3 rounded-2xl bg-slate-900/95 border border-indigo-500/40 text-white text-xs sm:text-sm shadow-2xl flex items-center gap-2 sheet-enter">
     <span id="toastText"></span>
   </div>
 
   <script>
     // ========================================================
-    // ฝัง URL ของ Cloudflare Worker API แบบถาวร
+    // 1. ฝัง URL ของ Cloudflare Worker API แบบถาวร
     // ========================================================
     const API_BASE_URL = "https://subscription-tracker-api.nawamin2025.workers.dev";
 
     let subscriptions = [];
     let currentFilter = "all";
 
-    const FX_TO_THB = {
-      THB: 1,
-      USD: 34.5,
-    };
+    const FX_TO_THB = { THB: 1, USD: 34.5 };
 
+    // ========================================================
+    // 2. ระบบเสียงคลิก & Sound Synthesizer (Web Audio API)
+    // ========================================================
+    let soundEnabled = localStorage.getItem("subweb_sound") !== "off";
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(type = "click") {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+
+        if (type === "click") {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(180, now + 0.045);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === "pop") {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(760, now + 0.08);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.085);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        } else if (type === "success") {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(freq, now + i * 0.065);
+            gain.gain.setValueAtTime(0.12, now + i * 0.065);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.065 + 0.22);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.065);
+            osc.stop(now + i * 0.065 + 0.24);
+          });
+        } else if (type === "delete") {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(95, now + 0.14);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.16);
+        }
+      } catch (_) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      localStorage.setItem("subweb_sound", soundEnabled ? "on" : "off");
+      const btn = document.getElementById("soundToggleBtn");
+      btn.textContent = soundEnabled ? "🔊" : "🔇";
+      if (soundEnabled) playTone("pop");
+      showToast(soundEnabled ? "🔊 เปิดเสียงเอฟเฟกต์แล้ว" : "🔇 ปิดเสียงเอฟเฟกต์แล้ว");
+    }
+
+    // Ripple Touch / Click Visual Effect
+    document.addEventListener("pointerdown", (e) => {
+      const ripple = document.createElement("div");
+      ripple.className = "ripple-circle";
+      ripple.style.width = "36px";
+      ripple.style.height = "36px";
+      ripple.style.left = `${e.clientX}px`;
+      ripple.style.top = `${e.clientY}px`;
+      document.body.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 550);
+    });
+
+    // ========================================================
+    // 3. คลังโลโก้แอปจริง (Real Brand SVG Logos & Brand Colors)
+    // ========================================================
+    const BRAND_CATALOG = [
+      {
+        key: "youtube",
+        name: "YouTube Premium",
+        category: "Entertainment",
+        defaultPrice: 179,
+        color: "#FF0000",
+        glow: "rgba(255, 0, 0, 0.35)",
+        match: /youtube|yt\s*premium|ยูทูป/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#180808"/><path fill="#FF0000" d="M41.5 16.3c-.4-1.6-1.7-2.9-3.3-3.3C35.3 12.2 24 12.2 24 12.2s-11.3 0-14.2.8c-1.6.4-2.9 1.7-3.3 3.3-.8 2.9-.8 7.7-.8 7.7s0 4.8.8 7.7c.4 1.6 1.7 2.9 3.3 3.3 2.9.8 14.2.8 14.2.8s11.3 0 14.2-.8c1.6-.4 2.9-1.7 3.3-3.3.8-2.9.8-7.7.8-7.7s0-4.8-.8-7.7z"/><path fill="#FFF" d="M20.4 28.8V19.2L29.8 24l-9.4 4.8z"/></svg>`
+      },
+      {
+        key: "netflix",
+        name: "Netflix",
+        category: "Entertainment",
+        defaultPrice: 419,
+        color: "#E50914",
+        glow: "rgba(229, 9, 20, 0.38)",
+        match: /netflix|เน็[ตท]ฟลิ/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#110506"/><path fill="#B1060F" d="M15 9h6v30h-6zM27 9h6v30h-6z"/><path fill="#E50914" d="M15 9h6l12 30h-6z"/></svg>`
+      },
+      {
+        key: "gemini",
+        name: "Gemini Advanced",
+        category: "AI & Tools",
+        defaultPrice: 750,
+        color: "#4E86F5",
+        glow: "rgba(78, 134, 245, 0.38)",
+        match: /gemini|เจมิไน/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><defs><linearGradient id="gemG" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4E86F5"/><stop offset="50%" stop-color="#9B72CB"/><stop offset="100%" stop-color="#D96570"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="#0b1124"/><path fill="url(#gemG)" d="M24 7c0 9.4-7.6 17-17 17 9.4 0 17 7.6 17 17 0-9.4 7.6-17 17-17-9.4 0-17-7.6-17-17z"/></svg>`
+      },
+      {
+        key: "google_one",
+        name: "Google One",
+        category: "Cloud & Storage",
+        defaultPrice: 99,
+        color: "#4285F4",
+        glow: "rgba(66, 133, 244, 0.35)",
+        match: /google\s*one|google\s*drive|goolgle\s*drive|กูเกิล/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#0d1527"/><path fill="#EA4335" d="M21 12h6v8h-6z"/><path fill="#4285F4" d="M21 20h6v17h-6z"/><path fill="#FBBC05" d="M15 16l6-4v6l-6 4z"/><path fill="#34A853" d="M15 16h6v4h-6z"/></svg>`
+      },
+      {
+        key: "prime",
+        name: "Prime Video",
+        category: "Entertainment",
+        defaultPrice: 149,
+        color: "#00A8E1",
+        glow: "rgba(0, 168, 225, 0.38)",
+        match: /prime\s*video|amazon\s*prime|ไพร์ม/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#071826"/><text x="24" y="23" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="800" font-family="Arial, sans-serif">prime</text><path d="M13 29 Q24 36 35 29" fill="none" stroke="#00A8E1" stroke-width="2.8" stroke-linecap="round"/><path d="M33 27 L36 29 L33.5 32" fill="none" stroke="#00A8E1" stroke-width="2.5" stroke-linecap="round"/></svg>`
+      },
+      {
+        key: "disney",
+        name: "Disney+ Hotstar",
+        category: "Entertainment",
+        defaultPrice: 289,
+        color: "#113CCF",
+        glow: "rgba(56, 189, 248, 0.35)",
+        match: /disney|ดิสนีย์|hotstar/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><defs><linearGradient id="disG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0a1d56"/><stop offset="100%" stop-color="#060c24"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="url(#disG)"/><path d="M14 21 Q24 10 35 21" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round"/><text x="24" y="30" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="800" font-family="Georgia, serif">Disney+</text></svg>`
+      },
+      {
+        key: "viu",
+        name: "Viu Premium",
+        category: "Entertainment",
+        defaultPrice: 119,
+        color: "#FFBF00",
+        glow: "rgba(255, 191, 0, 0.35)",
+        match: /\bviu\b|วิว/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#1c1605"/><text x="24" y="30" text-anchor="middle" fill="#FFBF00" font-size="17" font-weight="900" font-family="Arial, sans-serif">viu</text><circle cx="25.5" cy="15.5" r="2.2" fill="#FFFFFF"/></svg>`
+      },
+      {
+        key: "dtac",
+        name: "DTAC",
+        category: "Utilities",
+        defaultPrice: 399,
+        color: "#00ADEF",
+        glow: "rgba(0, 173, 239, 0.38)",
+        match: /dtac|ดีแทค/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#061b29"/><circle cx="24" cy="24" r="15" fill="#00ADEF" opacity="0.18"/><text x="24" y="29" text-anchor="middle" fill="#00ADEF" font-size="14" font-weight="900" font-family="Arial, sans-serif">dtac</text></svg>`
+      },
+      {
+        key: "true",
+        name: "TRUE",
+        category: "Utilities",
+        defaultPrice: 399,
+        color: "#ED1C24",
+        glow: "rgba(237, 28, 36, 0.38)",
+        match: /\btrue\b|ทรู|truevisions|trueid/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#210709"/><text x="24" y="29" text-anchor="middle" fill="#ED1C24" font-size="14" font-weight="900" font-family="Arial, sans-serif">true</text></svg>`
+      },
+      {
+        key: "chatgpt",
+        name: "ChatGPT Plus",
+        category: "AI & Tools",
+        defaultPrice: 690,
+        color: "#10A37F",
+        glow: "rgba(16, 163, 127, 0.38)",
+        match: /chatgpt|openai|gpt/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#071f1a"/><g fill="none" stroke="#10A37F" stroke-width="2.4"><circle cx="24" cy="18" r="6"/><circle cx="29" cy="21" r="6"/><circle cx="29" cy="27" r="6"/><circle cx="24" cy="30" r="6"/><circle cx="19" cy="27" r="6"/><circle cx="19" cy="21" r="6"/></g></svg>`
+      },
+      {
+        key: "canva",
+        name: "Canva Pro",
+        category: "Work & Design",
+        defaultPrice: 229,
+        color: "#00C4CC",
+        glow: "rgba(0, 196, 204, 0.38)",
+        match: /canva|แคนวา/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><defs><linearGradient id="canvG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00C4CC"/><stop offset="100%" stop-color="#7D2AE8"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="url(#canvG)"/><text x="24" y="29" text-anchor="middle" fill="#FFFFFF" font-size="12" font-weight="800" font-family="Georgia, serif" font-style="italic">Canva</text></svg>`
+      },
+      {
+        key: "magnific",
+        name: "Magnific AI",
+        category: "AI & Tools",
+        defaultPrice: 1350,
+        color: "#C026D3",
+        glow: "rgba(192, 38, 211, 0.38)",
+        match: /magnific/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><defs><linearGradient id="magG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#EC4899"/><stop offset="100%" stop-color="#8B5CF6"/></linearGradient></defs><rect width="48" height="48" rx="12" fill="#1b0924"/><path fill="url(#magG)" d="M12 34V15l7 10 5-7 5 7 7-10v19h-4V23l-3 4-5-7-5 7-3-4v11z"/><circle cx="24" cy="12" r="2" fill="#F472B6"/></svg>`
+      },
+      {
+        key: "icloud",
+        name: "iCloud+",
+        category: "Cloud & Storage",
+        defaultPrice: 99,
+        color: "#38BDF8",
+        glow: "rgba(56, 189, 248, 0.38)",
+        match: /icloud|apple|ไอคลาวด์/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#081a2c"/><path fill="#38BDF8" d="M33.5 32H16a6 6 0 0 1-.8-11.9A8.5 8.5 0 0 1 31.8 18a5.5 5.5 0 0 1 1.7 14z"/></svg>`
+      },
+      {
+        key: "dropbox",
+        name: "Dropbox",
+        category: "Cloud & Storage",
+        defaultPrice: 350,
+        color: "#0061FF",
+        glow: "rgba(0, 97, 255, 0.38)",
+        match: /dropbox/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#07132b"/><path fill="#0061FF" d="M18 12l-8 5 6 5 8-5-6-5zm12 0l-6 5 8 5 6-5-8-5zM10 27l8 5 6-5-8-5-6 5zm20-5l-6 5 6 5 8-5-8-5zm-6 7l-6 4 6 4 6-4-6-4z"/></svg>`
+      },
+      {
+        key: "capcut",
+        name: "CapCut Pro",
+        category: "Work & Design",
+        defaultPrice: 279,
+        color: "#22D3EE",
+        glow: "rgba(34, 211, 238, 0.35)",
+        match: /capcut|แคปคัท/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#0f172a"/><path d="M13 17h12l10 14H13z" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linejoin="round"/><path d="M13 31h12l10-14H13z" fill="none" stroke="#22D3EE" stroke-width="2.6" stroke-linejoin="round"/></svg>`
+      },
+      {
+        key: "spotify",
+        name: "Spotify Premium",
+        category: "Entertainment",
+        defaultPrice: 139,
+        color: "#1DB954",
+        glow: "rgba(29, 185, 84, 0.38)",
+        match: /spotify|สปอติฟาย/i,
+        svg: `<svg viewBox="0 0 48 48" class="w-full h-full"><rect width="48" height="48" rx="12" fill="#061d0f"/><circle cx="24" cy="24" r="14" fill="#1DB954"/><path d="M17 20q7-2.5 14 1M18 24.5q6-2 12 1M19 29q4.5-1.5 9.5.8" fill="none" stroke="#061d0f" stroke-width="2.4" stroke-linecap="round"/></svg>`
+      }
+    ];
+
+    function detectBrand(name = "", category = "") {
+      for (const b of BRAND_CATALOG) {
+        if (b.match.test(name)) return b;
+      }
+      // Fallback by category
+      const fallbackMap = {
+        Entertainment: { color: "#818cf8", glow: "rgba(129, 140, 248, 0.3)", icon: "🎬" },
+        "AI & Tools": { color: "#38bdf8", glow: "rgba(56, 189, 248, 0.3)", icon: "🤖" },
+        "Cloud & Storage": { color: "#60a5fa", glow: "rgba(96, 165, 250, 0.3)", icon: "☁️" },
+        "Work & Design": { color: "#c084fc", glow: "rgba(192, 132, 252, 0.3)", icon: "💼" },
+        Utilities: { color: "#34d399", glow: "rgba(52, 211, 153, 0.3)", icon: "📱" },
+        Gaming: { color: "#f472b6", glow: "rgba(244, 114, 182, 0.3)", icon: "🎮" },
+      };
+      const fb = fallbackMap[category] || { color: "#6366f1", glow: "rgba(99, 102, 241, 0.3)", icon: "💎" };
+      const initial = (name || "S").trim().charAt(0).toUpperCase();
+      return {
+        key: "custom",
+        name,
+        color: fb.color,
+        glow: fb.glow,
+        svg: `<div class="w-full h-full rounded-xl bg-slate-800 flex items-center justify-center text-lg font-bold text-white">${fb.icon || initial}</div>`
+      };
+    }
+
+    function renderBrandDocks() {
+      // 1. Top Quick Add Dock
+      const dock = document.getElementById("quickBrandDock");
+      dock.innerHTML = BRAND_CATALOG.map((b) => `
+        <button
+          type="button"
+          onclick="quickOpenWithBrand('${b.key}')"
+          class="brand-pill shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-white/10"
+          style="box-shadow: 0 4px 15px -4px ${b.glow}"
+        >
+          <div class="w-7 h-7 rounded-lg overflow-hidden shrink-0">${b.svg}</div>
+          <span class="text-xs font-medium text-slate-200 whitespace-nowrap">${b.name.split(" ")[0]}</span>
+        </button>
+      `).join("");
+
+      // 2. Modal Brand Grid
+      const modalGrid = document.getElementById("modalBrandSelector");
+      modalGrid.innerHTML = BRAND_CATALOG.map((b) => `
+        <button
+          type="button"
+          onclick="selectBrandInModal('${b.key}')"
+          class="brand-pill flex flex-col items-center gap-1 p-2 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-white/10 text-center"
+        >
+          <div class="w-8 h-8 rounded-xl overflow-hidden shadow">${b.svg}</div>
+          <span class="text-[10px] text-slate-300 truncate w-full">${b.name.split(" ")[0]}</span>
+        </button>
+      `).join("");
+    }
+
+    function quickOpenWithBrand(brandKey) {
+      playTone("pop");
+      openSubModal();
+      selectBrandInModal(brandKey);
+    }
+
+    function selectBrandInModal(brandKey) {
+      playTone("click");
+      const b = BRAND_CATALOG.find((x) => x.key === brandKey);
+      if (!b) return;
+      document.getElementById("subName").value = b.name;
+      document.getElementById("subCategory").value = b.category;
+      if (!document.getElementById("subPrice").value) {
+        document.getElementById("subPrice").value = b.defaultPrice;
+      }
+      updateModalBrandPreview();
+    }
+
+    function updateModalBrandPreview() {
+      const name = document.getElementById("subName").value;
+      const cat = document.getElementById("subCategory").value;
+      const brand = detectBrand(name, cat);
+      const box = document.getElementById("modalBrandPreview");
+      box.innerHTML = brand.svg;
+      box.style.boxShadow = `0 0 20px ${brand.glow}`;
+    }
+
+    // ========================================================
+    // 4. ระบบจัดการวันที่ & ข้อมูล Cloudflare D1
+    // ========================================================
     function showToast(message, isError = false) {
       const toast = document.getElementById("toast");
       const text = document.getElementById("toastText");
       text.textContent = message;
-      toast.className = `fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl text-sm shadow-2xl flex items-center gap-2 border modal-pop ${
+      toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl text-xs sm:text-sm shadow-2xl flex items-center gap-2 border sheet-enter ${
         isError
           ? "bg-rose-950/95 border-rose-500/40 text-rose-200"
           : "bg-slate-900/95 border-indigo-500/40 text-slate-100"
       }`;
       toast.classList.remove("hidden");
-      setTimeout(() => toast.classList.add("hidden"), 3500);
+      setTimeout(() => toast.classList.add("hidden"), 3200);
     }
 
     function getTodayStr() {
@@ -485,6 +964,11 @@
       return new Date(d.getTime() - offset).toISOString().split("T")[0];
     }
 
+    function setQuickDays(days) {
+      playTone("click");
+      document.getElementById("subNextDate").value = addDaysStr(days);
+    }
+
     function getDaysLeft(dateStr) {
       const today = new Date(getTodayStr() + "T00:00:00");
       const target = new Date(dateStr + "T00:00:00");
@@ -495,42 +979,56 @@
       if (sub.status === "expired") return true;
       const daysLeft = getDaysLeft(sub.next_billing_date);
       const isOneTime = sub.billing_cycle === "once" || Number(sub.auto_renew) === 0;
-      if (sub.status === "active" && isOneTime && daysLeft < 0) {
-        return true;
-      }
+      if (sub.status === "active" && isOneTime && daysLeft < 0) return true;
       return false;
     }
 
-    async function loadSubscriptions() {
+    async function loadSubscriptions(showFeedback = false) {
+      const btn = document.getElementById("refreshBtn");
+      if (btn) btn.classList.add("animate-spin");
+
       try {
         const res = await fetch(`${API_BASE_URL}/api/subscriptions`);
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "ดึงข้อมูลไม่สำเร็จ");
-        subscriptions = (json.data || []).map((sub) => {
-          if (isSubExpired(sub)) {
-            return { ...sub, status: "expired" };
-          }
-          return sub;
-        });
+        subscriptions = (json.data || []).map((sub) =>
+          isSubExpired(sub) ? { ...sub, status: "expired" } : sub
+        );
         renderSubscriptions();
+        if (showFeedback) showToast("✨ อัปเดตข้อมูลล่าสุดแล้ว");
       } catch (err) {
-        showToast(`ดึงข้อมูลไม่สำเร็จ: ${err.message}`, true);
+        showToast(`เชื่อมต่อไม่สำเร็จ: ${err.message}`, true);
+      } finally {
+        if (btn) setTimeout(() => btn.classList.remove("animate-spin"), 350);
       }
     }
 
     function setFilter(filter) {
+      playTone("click");
       currentFilter = filter;
-      ["all", "due_soon", "active", "paused", "expired"].forEach((key) => {
+      const keys = ["all", "due_soon", "active", "paused", "expired"];
+
+      keys.forEach((key) => {
         const btn = document.getElementById(`filter-${key}`);
-        if (!btn) return;
-        if (key === filter) {
-          btn.className =
-            "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium btn-glow text-white transition whitespace-nowrap flex items-center gap-1.5";
-        } else {
-          btn.className =
-            "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700 transition whitespace-nowrap flex items-center gap-1.5";
+        if (btn) {
+          if (key === filter) {
+            btn.className =
+              "spring-tap px-4 py-2 rounded-2xl text-xs font-semibold bg-gradient-to-r from-indigo-600 to-blue-500 text-white shadow-lg shadow-indigo-600/30 whitespace-nowrap flex items-center gap-1.5";
+          } else {
+            btn.className =
+              "spring-tap px-4 py-2 rounded-2xl text-xs font-medium bg-slate-900/80 border border-white/10 text-slate-300 hover:bg-slate-800 whitespace-nowrap flex items-center gap-1.5";
+          }
+        }
+
+        const mbtn = document.getElementById(`mnav-${key}`);
+        if (mbtn) {
+          mbtn.className =
+            key === filter
+              ? "spring-tap relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl text-indigo-400 scale-105"
+              : "spring-tap relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-2xl text-slate-400";
         }
       });
+
       renderSubscriptions();
     }
 
@@ -553,18 +1051,12 @@
           const rate = FX_TO_THB[sub.currency] || 1;
           const priceTHB = Number(sub.price || 0) * rate;
 
-          if (sub.billing_cycle === "yearly") {
-            monthlyTHB += priceTHB / 12;
-          } else if (sub.billing_cycle === "weekly") {
-            monthlyTHB += (priceTHB * 52) / 12;
-          } else {
-            monthlyTHB += priceTHB;
-          }
+          if (sub.billing_cycle === "yearly") monthlyTHB += priceTHB / 12;
+          else if (sub.billing_cycle === "weekly") monthlyTHB += (priceTHB * 52) / 12;
+          else monthlyTHB += priceTHB;
 
           const daysLeft = getDaysLeft(sub.next_billing_date);
-          if (daysLeft >= 0 && daysLeft <= 7) {
-            dueSoonCount++;
-          }
+          if (daysLeft >= 0 && daysLeft <= 7) dueSoonCount++;
         }
       });
 
@@ -574,19 +1066,22 @@
         "฿" + Math.round(monthlyTHB).toLocaleString();
       document.getElementById("statYearly").textContent =
         "฿" + Math.round(yearlyTHB).toLocaleString();
-      document.getElementById("statActiveCount").textContent = `${activeCount} รายการ`;
+      document.getElementById("statActiveCount").textContent = `${activeCount} แอป`;
       document.getElementById("statTotalCount").textContent =
         expiredCount > 0
-          ? `ใช้งาน ${activeCount} | หมดอายุแล้ว ${expiredCount} รายการ`
+          ? `ใช้งาน ${activeCount} • หมดอายุ ${expiredCount}`
           : `จากทั้งหมด ${nonExpiredTotal} รายการ`;
-      document.getElementById("statDueSoon").textContent = `${dueSoonCount} รายการ`;
+      document.getElementById("statDueSoon").textContent = `${dueSoonCount} แอป`;
 
       const badge = document.getElementById("expiredCountBadge");
+      const mDot = document.getElementById("mobileExpiredDot");
       if (expiredCount > 0) {
         badge.textContent = expiredCount;
         badge.classList.remove("hidden");
+        if (mDot) mDot.classList.remove("hidden");
       } else {
         badge.classList.add("hidden");
+        if (mDot) mDot.classList.add("hidden");
       }
 
       const clearBtn = document.getElementById("clearExpiredBtn");
@@ -595,18 +1090,6 @@
       } else {
         clearBtn.classList.add("hidden");
       }
-    }
-
-    function getCategoryIcon(cat) {
-      const map = {
-        Entertainment: "🎬",
-        "AI & Tools": "🤖",
-        "Cloud & Storage": "☁️",
-        "Work & Design": "💼",
-        Gaming: "🎮",
-        Utilities: "📱",
-      };
-      return map[cat] || "📌";
     }
 
     function getCycleMaxDays(cycle) {
@@ -651,16 +1134,16 @@
         grid.innerHTML = "";
         empty.classList.remove("hidden");
         if (currentFilter === "expired") {
-          emptyIcon.textContent = "✨";
-          emptyTitle.textContent = "ไม่มีรายการที่หมดอายุ";
+          emptyIcon.textContent = "🎉";
+          emptyTitle.textContent = "ไม่มีรายการที่หมดอายุค้างอยู่";
           emptyDesc.textContent =
-            "รายการแบบครั้งเดียว (ไม่ต่ออายุ) เมื่อครบกำหนดแล้วจะถูกย้ายมาเก็บไว้ที่นี่โดยอัตโนมัติ";
+            "แอปแบบครั้งเดียว (ไม่ต่ออายุ) เมื่อครบกำหนดแล้วจะย้ายมาเก็บไว้ที่นี่อัตโนมัติ";
           emptyActionBtn.classList.add("hidden");
         } else {
-          emptyIcon.textContent = "📭";
+          emptyIcon.textContent = "✨";
           emptyTitle.textContent = "ยังไม่มีรายการในหมวดนี้";
           emptyDesc.textContent =
-            "เริ่มต้นเพิ่มรายการค่าบริการรายเดือน รายปี หรือแบบครั้งเดียว (ไม่ต่ออายุ) เพื่อติดตามค่าใช้จ่ายและรับแจ้งเตือนผ่าน Telegram";
+            "แตะโลโก้แอปด้านบน หรือกดปุ่ม ＋ เพื่อเพิ่มรายการใหม่พร้อมรับแจ้งเตือน Telegram";
           emptyActionBtn.classList.remove("hidden");
         }
         return;
@@ -670,49 +1153,47 @@
 
       grid.innerHTML = filtered
         .map((sub, idx) => {
+          const brand = detectBrand(sub.name, sub.category);
           const daysLeft = getDaysLeft(sub.next_billing_date);
           const remindDays = Number(sub.remind_days_before ?? 3);
           const isOneTime = sub.billing_cycle === "once" || Number(sub.auto_renew) === 0;
           const inRemindWindow = sub.status === "active" && daysLeft >= 0 && daysLeft <= remindDays;
 
-          // คำนวณหลอด Progress Bar
           const maxDays = getCycleMaxDays(sub.billing_cycle);
           const pctRemaining =
             sub.status === "expired"
               ? 0
-              : Math.max(4, Math.min(100, Math.round((Math.max(0, daysLeft) / maxDays) * 100)));
+              : Math.max(5, Math.min(100, Math.round((Math.max(0, daysLeft) / maxDays) * 100)));
 
-          let barColor = "from-emerald-400 to-cyan-400";
-          let topAccent = "border-t-2 border-t-indigo-500/50";
-          let dueBadge = "";
+          // SVG Ring math (radius 18 => circumference ~ 113)
+          const circumference = 113;
+          const dashOffset = circumference - (pctRemaining / 100) * circumference;
+
+          let statusPill = "";
+          let ringColor = brand.color;
 
           if (sub.status === "expired") {
-            barColor = "from-rose-500 to-rose-700";
-            topAccent = "border-t-2 border-t-rose-500/50";
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">⌛ หมดอายุแล้ว</span>`;
+            ringColor = "#f43f5e";
+            statusPill = `<span class="px-2.5 py-1 rounded-xl text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">⌛ หมดอายุแล้ว</span>`;
           } else if (sub.status === "paused") {
-            barColor = "from-slate-500 to-slate-600";
-            topAccent = "border-t-2 border-t-slate-600";
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-slate-800 text-slate-400">⏸️ ระงับชั่วคราว</span>`;
+            ringColor = "#64748b";
+            statusPill = `<span class="px-2.5 py-1 rounded-xl text-[11px] bg-slate-800 text-slate-400">⏸️ ระงับไว้</span>`;
           } else if (daysLeft < 0) {
-            barColor = "from-rose-500 to-amber-500";
-            topAccent = "border-t-2 border-t-rose-500";
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">⚠️ เลยกำหนด ${Math.abs(daysLeft)} วัน</span>`;
+            ringColor = "#f43f5e";
+            statusPill = `<span class="px-2.5 py-1 rounded-xl text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">⚠️ เลย ${Math.abs(daysLeft)} วัน</span>`;
           } else if (daysLeft === 0) {
-            barColor = "from-rose-500 via-orange-500 to-amber-400";
-            topAccent = "border-t-2 border-t-rose-500";
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40 font-semibold animate-pulse">${isOneTime ? "🚨 หมดอายุวันนี้!" : "🚨 ตัดบิลวันนี้!"}</span>`;
+            ringColor = "#f43f5e";
+            statusPill = `<span class="px-2.5 py-1 rounded-xl text-[11px] bg-rose-500/25 text-rose-200 border border-rose-500/40 font-bold animate-pulse">🚨 วันนี้!</span>`;
           } else if (daysLeft <= remindDays) {
-            barColor = "from-amber-400 to-orange-500";
-            topAccent = "border-t-2 border-t-amber-400";
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium animate-pulse">🔔 อีก ${daysLeft} วัน</span>`;
+            ringColor = "#fbbf24";
+            statusPill = `<span class="px-2.5 py-1 rounded-xl text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/35 font-semibold animate-pulse">🔔 อีก ${daysLeft} วัน</span>`;
           } else {
-            dueBadge = `<span class="px-2.5 py-1 rounded-lg text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">อีก ${daysLeft} วัน</span>`;
+            statusPill = `<span class="px-2.5 py-1 rounded-xl text-[11px] bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 font-medium">อีก ${daysLeft} วัน</span>`;
           }
 
           const cycleText =
             sub.billing_cycle === "once"
-              ? "/ ครั้งเดียว (ไม่ต่ออายุ)"
+              ? "/ ครั้งเดียว"
               : sub.billing_cycle === "yearly"
               ? "/ ปี"
               : sub.billing_cycle === "weekly"
@@ -720,100 +1201,121 @@
               : "/ เดือน";
 
           const currencySymbol = sub.currency === "USD" ? "$" : "฿";
-          const dateLabelText =
-            sub.status === "expired"
-              ? "หมดอายุเมื่อ"
-              : isOneTime
-              ? "วันหมดอายุ"
-              : "ตัดบิลถัดไป";
 
           const renewButtonHtml =
             sub.status === "expired"
-              ? `<button onclick="renewNextCycle(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 border border-indigo-500/30 transition" title="เปิดใช้งาน / ต่ออายุอีก 1 รอบ">
+              ? `<button onclick="playTone('pop'); renewNextCycle(${sub.id})" class="spring-tap px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 border border-indigo-500/30 font-medium transition">
                   🔄 ต่ออายุใหม่
                 </button>`
               : !isOneTime
-              ? `<button onclick="renewNextCycle(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/25 transition" title="จ่ายแล้ว / เลื่อนไปรอบบิลถัดไป">
+              ? `<button onclick="playTone('pop'); renewNextCycle(${sub.id})" class="spring-tap px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/25 font-medium transition">
                   ⏭️ รอบถัดไป
                 </button>`
               : "";
 
-          // กล่อง Live Countdown เคลื่อนไหวสดเมื่ออยู่ในช่วงเตือนล่วงหน้า (หรือแสดงเวลานับถอยหลังทุกการ์ดที่ Active)
-          const liveCountdownHtml =
-            sub.status === "active" && daysLeft >= 0
-              ? `
-                <div class="rounded-xl px-3 py-2 ${
-                  inRemindWindow
-                    ? "bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-rose-500/15 border border-amber-500/30"
-                    : "bg-slate-900/60 border border-slate-800/80"
-                } flex items-center justify-between text-xs">
-                  <span class="flex items-center gap-1.5 ${inRemindWindow ? "text-amber-300 font-medium" : "text-slate-400"}">
-                    <span class="${inRemindWindow ? "animate-spin" : ""}">⏳</span>
-                    <span>${inRemindWindow ? "กำลังแจ้งเตือน 4 รอบ/วัน" : "เวลานับถอยหลัง"}</span>
-                  </span>
-                  <span class="font-mono font-semibold ${inRemindWindow ? "text-amber-200" : "text-cyan-300"} live-countdown" data-target="${sub.next_billing_date}">
-                    กำลังคำนวณ...
-                  </span>
-                </div>
-              `
-              : "";
-
           return `
-            <div style="animation-delay: ${idx * 70}ms" class="glass sub-card ${topAccent} rounded-2xl p-5 flex flex-col justify-between gap-4 ${sub.status === "expired" ? "opacity-80" : ""}">
-              <div class="space-y-3.5">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-xl shrink-0 shadow-inner">
-                      ${getCategoryIcon(sub.category)}
+            <div
+              style="animation-delay: ${idx * 65}ms; --brand-color: ${brand.color}; --brand-glow: ${brand.glow};"
+              class="app-glass sub-card rounded-3xl p-5 flex flex-col justify-between gap-4 border border-white/10"
+            >
+              <!-- Ambient Brand Glow Corner -->
+              <div class="absolute -top-10 -right-10 w-28 h-28 rounded-full blur-2xl pointer-events-none opacity-30" style="background: ${brand.color}"></div>
+
+              <div class="space-y-3.5 relative z-10">
+                <!-- Top Row: Real App Logo + Title + Circular Countdown Ring -->
+                <div class="flex items-start justify-between gap-2.5">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="brand-logo-box w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-white/15 shadow-lg" style="box-shadow: 0 6px 20px -4px ${brand.glow}">
+                      ${brand.svg}
                     </div>
-                    <div>
-                      <h3 class="font-bold text-white text-base leading-snug">${escapeHtml(sub.name)}</h3>
-                      <div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-                        <span class="text-xs text-slate-400">${escapeHtml(sub.category)}</span>
+                    <div class="min-w-0">
+                      <h3 class="font-bold text-white text-base leading-tight truncate">${escapeHtml(sub.name)}</h3>
+                      <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span class="text-[11px] text-slate-400">${escapeHtml(sub.category)}</span>
                         ${
                           isOneTime
-                            ? `<span class="text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25">⚡ ไม่ต่ออายุ</span>`
-                            : `<span class="text-[10px] px-1.5 py-0.2 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">🔄 ต่ออายุอัตโนมัติ</span>`
+                            ? `<span class="text-[10px] px-1.5 py-0.2 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25">⚡ ครั้งเดียว</span>`
+                            : `<span class="text-[10px] px-1.5 py-0.2 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">🔄 ต่ออัตโนมัติ</span>`
                         }
                       </div>
                     </div>
                   </div>
-                  ${dueBadge}
+                  ${statusPill}
                 </div>
 
-                <div class="pt-2 border-t border-slate-800/80 flex items-baseline justify-between">
+                <!-- Price & Expiration Date with Circular Progress Ring -->
+                <div class="pt-2.5 border-t border-white/5 flex items-center justify-between">
                   <div>
-                    <span class="text-2xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">${currencySymbol}${Number(sub.price).toLocaleString()}</span>
-                    <span class="text-xs text-slate-400">${cycleText}</span>
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-2xl font-bold text-white tracking-tight">${currencySymbol}${Number(sub.price).toLocaleString()}</span>
+                      <span class="text-xs text-slate-400">${cycleText}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">
+                      ${sub.status === "expired" ? "หมดอายุเมื่อ" : isOneTime ? "หมดอายุ" : "ตัดบิล"}: <b class="text-slate-200">${sub.next_billing_date}</b>
+                    </div>
                   </div>
-                  <div class="text-right">
-                    <div class="text-[11px] text-slate-400">${dateLabelText}</div>
-                    <div class="text-xs font-semibold text-slate-200">${sub.next_billing_date}</div>
+
+                  <!-- Animated SVG Countdown Ring -->
+                  <div class="relative w-11 h-11 flex items-center justify-center shrink-0">
+                    <svg class="w-11 h-11" viewBox="0 0 44 44">
+                      <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.5"></circle>
+                      <circle
+                        class="ring-circle"
+                        cx="22" cy="22" r="18"
+                        fill="none"
+                        stroke="${ringColor}"
+                        stroke-width="3.5"
+                        stroke-linecap="round"
+                        stroke-dasharray="${circumference}"
+                        stroke-dashoffset="${dashOffset}"
+                      ></circle>
+                    </svg>
+                    <span class="absolute text-[10px] font-bold text-slate-200">${daysLeft < 0 ? "0d" : `${daysLeft}d`}</span>
                   </div>
                 </div>
 
-                <!-- Animated Progress Bar -->
-                <div class="w-full h-2 rounded-full bg-slate-900/90 overflow-hidden border border-slate-800/80">
-                  <div class="h-full rounded-full bg-gradient-to-r ${barColor} progress-shimmer transition-all duration-700" style="width: ${pctRemaining}%"></div>
+                <!-- Shimmer Bar -->
+                <div class="w-full h-1.5 rounded-full bg-slate-900/90 overflow-hidden">
+                  <div class="h-full rounded-full shimmer-bar transition-all duration-700" style="width: ${pctRemaining}%; background: ${ringColor}"></div>
                 </div>
 
-                ${liveCountdownHtml}
+                <!-- Live Digital Countdown Clock -->
+                ${
+                  sub.status === "active" && daysLeft >= 0
+                    ? `
+                    <div class="rounded-2xl px-3 py-2 ${
+                      inRemindWindow
+                        ? "bg-amber-500/15 border border-amber-500/30"
+                        : "bg-slate-900/65 border border-white/5"
+                    } flex items-center justify-between text-xs">
+                      <span class="flex items-center gap-1.5 ${inRemindWindow ? "text-amber-300 font-medium" : "text-slate-400"}">
+                        <span class="${inRemindWindow ? "animate-spin" : ""}">⏳</span>
+                        <span>${inRemindWindow ? "เตือน 4 รอบ/วัน" : "นับถอยหลัง"}</span>
+                      </span>
+                      <span class="font-mono font-semibold ${inRemindWindow ? "text-amber-200" : "text-cyan-300"} live-countdown" data-target="${sub.next_billing_date}">
+                        --:--:--
+                      </span>
+                    </div>
+                  `
+                    : ""
+                }
 
                 ${
                   sub.notes
-                    ? `<div class="text-xs text-slate-300 bg-slate-900/70 px-3 py-2 rounded-xl border border-slate-800/80 flex items-center gap-1.5"><span>📝</span><span class="truncate">${escapeHtml(sub.notes)}</span></div>`
+                    ? `<div class="text-xs text-slate-300 bg-slate-900/75 px-3 py-2 rounded-2xl border border-white/5 flex items-center gap-1.5"><span>📝</span><span class="truncate">${escapeHtml(sub.notes)}</span></div>`
                     : ""
                 }
               </div>
 
-              <div class="flex items-center justify-between pt-2.5 border-t border-slate-800/80 text-xs">
-                <span class="text-slate-400">🔔 เตือนล่วงหน้า ${remindDays} วัน</span>
+              <!-- Card Footer Actions -->
+              <div class="flex items-center justify-between pt-2.5 border-t border-white/5 text-xs relative z-10">
+                <span class="text-[11px] text-slate-400">🔔 เตือนล่วงหน้า ${remindDays} วัน</span>
                 <div class="flex items-center gap-1.5">
                   ${renewButtonHtml}
-                  <button onclick="openSubModal(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/60 transition">
+                  <button onclick="playTone('click'); openSubModal(${sub.id})" class="spring-tap px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-white/10">
                     แก้ไข
                   </button>
-                  <button onclick="deleteSubscription(${sub.id})" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/20 transition">
+                  <button onclick="playTone('delete'); deleteSubscription(${sub.id})" class="spring-tap px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/20">
                     ลบ
                   </button>
                 </div>
@@ -826,7 +1328,6 @@
       updateLiveCountdowns();
     }
 
-    // อัปเดตตัวเลขนับถอยหลัง (วัน : ชั่วโมง : นาที : วินาที) แบบเคลื่อนไหวทุก 1 วินาที
     function updateLiveCountdowns() {
       const els = document.querySelectorAll(".live-countdown");
       const now = new Date();
@@ -858,17 +1359,15 @@
     }
 
     function handleCycleChange() {
+      playTone("click");
       const cycle = document.getElementById("subCycle").value;
       const autoRenewCheckbox = document.getElementById("subAutoRenew");
-      if (cycle === "once") {
-        autoRenewCheckbox.checked = false;
-      } else {
-        autoRenewCheckbox.checked = true;
-      }
+      autoRenewCheckbox.checked = cycle !== "once";
       updateOneTimeUI();
     }
 
     function handleAutoRenewChange() {
+      playTone("click");
       updateOneTimeUI();
     }
 
@@ -880,22 +1379,15 @@
 
       if (cycle === "once" || !autoRenew) {
         hint.classList.remove("hidden");
-        dateLabel.textContent = "วันหมดอายุ (ครบกำหนดแล้วเอาออกอัตโนมัติ) *";
+        dateLabel.textContent = "วันหมดอายุ (หมดเวลาแล้วเอาออกอัตโนมัติ) *";
       } else {
         hint.classList.add("hidden");
         dateLabel.textContent = "วันที่ตัดบิลครั้งถัดไป *";
       }
     }
 
-    function fillPreset(name, category, price, cycle) {
-      document.getElementById("subName").value = name;
-      document.getElementById("subCategory").value = category;
-      document.getElementById("subPrice").value = price;
-      document.getElementById("subCycle").value = cycle;
-      handleCycleChange();
-    }
-
     function openSubModal(id = null) {
+      playTone("pop");
       const modal = document.getElementById("subModal");
       const title = document.getElementById("modalTitle");
       document.getElementById("subForm").reset();
@@ -903,7 +1395,7 @@
       if (id) {
         const sub = subscriptions.find((s) => Number(s.id) === Number(id));
         if (!sub) return;
-        title.textContent = "แก้ไขรายการ Subscription";
+        title.textContent = "แก้ไขรายการแอป";
         document.getElementById("subId").value = sub.id;
         document.getElementById("subName").value = sub.name;
         document.getElementById("subCategory").value = sub.category || "General";
@@ -917,7 +1409,7 @@
           sub.billing_cycle === "once" ? false : Boolean(sub.auto_renew);
         document.getElementById("subNotes").value = sub.notes || "";
       } else {
-        title.textContent = "เพิ่มรายการ Subscription ใหม่";
+        title.textContent = "เพิ่มแอป / บริการใหม่";
         document.getElementById("subId").value = "";
         document.getElementById("subNextDate").value = addDaysStr(30);
         document.getElementById("subRemindDays").value = 3;
@@ -925,14 +1417,26 @@
       }
 
       updateOneTimeUI();
+      updateModalBrandPreview();
       modal.classList.remove("hidden");
       modal.classList.add("flex");
     }
 
     function closeSubModal() {
+      playTone("click");
       const modal = document.getElementById("subModal");
       modal.classList.add("hidden");
       modal.classList.remove("flex");
+    }
+
+    function fireConfetti() {
+      if (typeof confetti === "function") {
+        confetti({
+          particleCount: 55,
+          spread: 65,
+          origin: { y: 0.75 },
+        });
+      }
     }
 
     async function saveSubscription(e) {
@@ -974,7 +1478,9 @@
         if (!res.ok || !json.ok) throw new Error(json.error || "บันทึกไม่สำเร็จ");
 
         closeSubModal();
-        showToast(id ? "✨ บันทึกการแก้ไขสำเร็จ!" : "🎉 เพิ่มรายการใหม่สำเร็จ!");
+        playTone("success");
+        fireConfetti();
+        showToast(id ? "✨ บันทึกการแก้ไขสำเร็จ!" : "🎉 เพิ่มแอปใหม่สำเร็จ!");
         await loadSubscriptions();
       } catch (err) {
         showToast(`เกิดข้อผิดพลาด: ${err.message}`, true);
@@ -991,6 +1497,8 @@
         });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "เลื่อนรอบบิลไม่สำเร็จ");
+        playTone("success");
+        fireConfetti();
         showToast(`⏭️ ต่ออายุไปเป็น ${json.next_billing_date} เรียบร้อย!`);
         await loadSubscriptions();
       } catch (err) {
@@ -1009,6 +1517,7 @@
         });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error || "ลบไม่สำเร็จ");
+        playTone("delete");
         showToast("🗑️ ลบรายการเรียบร้อยแล้ว");
         await loadSubscriptions();
       } catch (err) {
@@ -1017,6 +1526,7 @@
     }
 
     async function clearAllExpired() {
+      playTone("delete");
       if (!confirm("ต้องการลบรายการที่หมดอายุทั้งหมดออกจากระบบถาวรใช่หรือไม่?")) return;
 
       try {
@@ -1032,7 +1542,11 @@
       }
     }
 
-    window.addEventListener("DOMContentLoaded", loadSubscriptions);
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("soundToggleBtn").textContent = soundEnabled ? "🔊" : "🔇";
+      renderBrandDocks();
+      loadSubscriptions();
+    });
   </script>
 </body>
 </html>
